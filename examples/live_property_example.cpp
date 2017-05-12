@@ -9,9 +9,9 @@ int main()
 	live_int int_prop{ "integer property for tests" }, dummy_int_prop{ "dummy" };
 	std::vector<nstd::signalslot::connection> conections;
 	conections.emplace_back(
-    int_prop.value_changing.connect([](auto &&prop, auto &&ctx)
+    int_prop.value_changing.connect([](auto &&ctx)
     {
-        std::cout << "The property '" << prop.name() << "' changing: from [" << prop << "] to [" << ctx.new_value << "]" << std::endl;
+        std::cout << "The property '" << ctx.property.name() << "' changing: from [" << ctx.property << "] to [" << ctx.new_value << "]" << std::endl;
 
         if (ctx.cancel = ctx.new_value < 0; ctx.cancel)
         {
@@ -20,9 +20,9 @@ int main()
     })
     );
 	conections.emplace_back(
-    int_prop.value_changed.connect([](auto &&prop)
+    int_prop.value_changed.connect([](auto &&property)
     {
-        std::cout << "The property '" << prop.name() << "' changed to: " << prop << std::endl;
+        std::cout << "The property '" << property.name() << "' changed to: " << property << std::endl;
     })
     );
 
@@ -31,12 +31,20 @@ int main()
 	int_prop = 1;
 	int_prop = 150;
 	int_prop = raw_int;
+	int_prop *= 7;
+
+	std::cout << "...checking for oprator== works in C++17 as expected..." << std::endl;
+	std::cout << "comparing int_prop == dummy_int_prop (expecting: false): " << std::boolalpha << (int_prop == dummy_int_prop) << std::endl;
+
 	int_prop = dummy_int_prop;
+
+	std::cout << "now comparing int_prop == dummy_int_prop (expecting: true): " << std::boolalpha << (int_prop == dummy_int_prop) << std::endl;
+
 	int_prop = -1;
 	std::cout << "int_prop = " << int_prop << std::endl;
 
 	conections.clear(); //auto-disconnect from all slots
-    std::cout << "no slots are called from now on since we destroied all connections..." << std::endl << "...setting int_prop to -1 now should work..." << std::endl;
+    std::cout << "no slots are called from now on since we destroied all connections..." << std::endl << "...setting int_prop to -1 should not be restricted now..." << std::endl;
 
     int_prop = -1;
 

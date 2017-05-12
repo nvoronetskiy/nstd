@@ -34,10 +34,9 @@ public:
 
     struct value_changing_context
     {
+        const live_property &property;
         const value_type &new_value;
         bool cancel = false;
-
-        value_changing_context(const value_type &value) : new_value{ value } {}
     };
 
     live_property(const std::string &name) : _name{ name } {}
@@ -86,25 +85,200 @@ public:
         return *this;
     }
 
-    operator value_type() const
-    {
-        return _value;
-    }
-
     std::string_view name() const
     {
         return _name;
     }
 
+    const value_type &value() const
+    {
+        return _value;
+    }
+
+    operator value_type() const
+    {
+        return _value;
+    }
+
+    live_property &operator +=(const value_type &value)
+    {
+        if (emit_changing(_value + value))
+        {
+            _value += value;
+
+            emit_changed();
+        }
+
+        return *this;
+    }
+
+    live_property &operator +=(const live_property &other)
+    {
+        return operator += (other._value);
+    }
+
+    live_property &operator -=(const value_type &value)
+    {
+        if (emit_changing(_value - value))
+        {
+            _value -= value;
+
+            emit_changed();
+        }
+
+        return *this;
+    }
+
+    live_property &operator -=(const live_property &other)
+    {
+        return operator -= (other._value);
+    }
+
+    live_property &operator *=(const value_type &value)
+    {
+        if (emit_changing(_value * value))
+        {
+            _value *= value;
+
+            emit_changed();
+        }
+
+        return *this;
+    }
+
+    live_property &operator *=(const live_property &other)
+    {
+        return operator *= (other._value);
+    }
+
+    live_property &operator /=(const value_type &value)
+    {
+        if (emit_changing(_value / value))
+        {
+            _value /= value;
+
+            emit_changed();
+        }
+
+        return *this;
+    }
+
+    live_property &operator /=(const live_property &other)
+    {
+        return operator /= (other._value);
+    }
+
+    live_property &operator >>=(const value_type &value)
+    {
+        if (emit_changing(_value >> value))
+        {
+            _value >>= value;
+
+            emit_changed();
+        }
+
+        return *this;
+    }
+
+    live_property &operator >>=(const live_property &other)
+    {
+        return operator >>= (other._value);
+    }
+
+    live_property &operator <<=(const value_type &value)
+    {
+        if (emit_changing(_value << value))
+        {
+            _value <<= value;
+
+            emit_changed();
+        }
+
+        return *this;
+    }
+
+    live_property &operator <<=(const live_property &other)
+    {
+        return operator <<= (other._value);
+    }
+
+    live_property &operator &=(const value_type &value)
+    {
+        if (emit_changing(_value & value))
+        {
+            _value &= value;
+
+            emit_changed();
+        }
+
+        return *this;
+    }
+
+    live_property &operator &=(const live_property &other)
+    {
+        return operator &= (other._value);
+    }
+
+    live_property &operator |=(const value_type &value)
+    {
+        if (emit_changing(_value | value))
+        {
+            _value |= value;
+
+            emit_changed();
+        }
+
+        return *this;
+    }
+
+    live_property &operator |=(const live_property &other)
+    {
+        return operator |= (other._value);
+    }
+
+    live_property &operator ^=(const value_type &value)
+    {
+        if (emit_changing(_value ^ value))
+        {
+            _value ^= value;
+
+            emit_changed();
+        }
+
+        return *this;
+    }
+
+    live_property &operator ^=(const live_property &other)
+    {
+        return operator ^= (other._value);
+    }
+
+    live_property &operator %=(const value_type &value)
+    {
+        if (emit_changing(_value % value))
+        {
+            _value %= value;
+
+            emit_changed();
+        }
+
+        return *this;
+    }
+
+    live_property &operator %=(const live_property &other)
+    {
+        return operator %= (other._value);
+    }
+
+    nstd::signalslot::signal<value_changing_context&> value_changing;
     nstd::signalslot::signal<const live_property&> value_changed;
-    nstd::signalslot::signal<const live_property&, value_changing_context&> value_changing;
 
 private:
     bool emit_changing(const value_type &value)
     {
-        value_changing_context context(value);
+        value_changing_context context{ *this, value };
 
-        value_changing.emit(*this, context);
+        value_changing.emit(context);
 
         return !context.cancel;
     }
