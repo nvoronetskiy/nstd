@@ -53,14 +53,7 @@ public:
 
     live_property &operator=(value_type &&value)
     {
-        if (emit_changing(value))
-        {
-            _value = std::forward<value_type>(value);
-
-            emit_changed();
-        }
-
-        return *this;
+        return move_value(std::forward<value_type>(value));
     }
 
     live_property &operator=(live_property &&other)
@@ -75,14 +68,7 @@ public:
 
     live_property &operator=(const value_type &value)
     {
-        if (emit_changing(value))
-        {
-            _value = value;
-
-            emit_changed();
-        }
-
-        return *this;
+        return assign_value(value);
     }
 
     std::string_view name() const
@@ -102,14 +88,7 @@ public:
 
     live_property &operator +=(const value_type &value)
     {
-        if (emit_changing(_value + value))
-        {
-            _value += value;
-
-            emit_changed();
-        }
-
-        return *this;
+        return assign_value(_value + value);
     }
 
     live_property &operator +=(const live_property &other)
@@ -119,14 +98,7 @@ public:
 
     live_property &operator -=(const value_type &value)
     {
-        if (emit_changing(_value - value))
-        {
-            _value -= value;
-
-            emit_changed();
-        }
-
-        return *this;
+        return assign_value(_value - value);
     }
 
     live_property &operator -=(const live_property &other)
@@ -136,14 +108,7 @@ public:
 
     live_property &operator *=(const value_type &value)
     {
-        if (emit_changing(_value * value))
-        {
-            _value *= value;
-
-            emit_changed();
-        }
-
-        return *this;
+        return assign_value(_value * value);
     }
 
     live_property &operator *=(const live_property &other)
@@ -153,14 +118,7 @@ public:
 
     live_property &operator /=(const value_type &value)
     {
-        if (emit_changing(_value / value))
-        {
-            _value /= value;
-
-            emit_changed();
-        }
-
-        return *this;
+        return assign_value(_value / value);
     }
 
     live_property &operator /=(const live_property &other)
@@ -170,14 +128,7 @@ public:
 
     live_property &operator >>=(const value_type &value)
     {
-        if (emit_changing(_value >> value))
-        {
-            _value >>= value;
-
-            emit_changed();
-        }
-
-        return *this;
+        return assign_value(_value >> value);
     }
 
     live_property &operator >>=(const live_property &other)
@@ -187,14 +138,7 @@ public:
 
     live_property &operator <<=(const value_type &value)
     {
-        if (emit_changing(_value << value))
-        {
-            _value <<= value;
-
-            emit_changed();
-        }
-
-        return *this;
+        return assign_value(_value << value);
     }
 
     live_property &operator <<=(const live_property &other)
@@ -204,14 +148,7 @@ public:
 
     live_property &operator &=(const value_type &value)
     {
-        if (emit_changing(_value & value))
-        {
-            _value &= value;
-
-            emit_changed();
-        }
-
-        return *this;
+        return assign_value(_value & value);
     }
 
     live_property &operator &=(const live_property &other)
@@ -221,14 +158,7 @@ public:
 
     live_property &operator |=(const value_type &value)
     {
-        if (emit_changing(_value | value))
-        {
-            _value |= value;
-
-            emit_changed();
-        }
-
-        return *this;
+        return assign_value(_value | value);
     }
 
     live_property &operator |=(const live_property &other)
@@ -238,14 +168,7 @@ public:
 
     live_property &operator ^=(const value_type &value)
     {
-        if (emit_changing(_value ^ value))
-        {
-            _value ^= value;
-
-            emit_changed();
-        }
-
-        return *this;
+        return assign_value(_value ^ value);;
     }
 
     live_property &operator ^=(const live_property &other)
@@ -255,14 +178,7 @@ public:
 
     live_property &operator %=(const value_type &value)
     {
-        if (emit_changing(_value % value))
-        {
-            _value %= value;
-
-            emit_changed();
-        }
-
-        return *this;
+        return assign_value(_value % value);;
     }
 
     live_property &operator %=(const live_property &other)
@@ -274,6 +190,30 @@ public:
     nstd::signalslot::signal<const live_property&> value_changed;
 
 private:
+    live_property &assign_value(const value_type &value)
+    {
+        if (emit_changing(value))
+        {
+            _value = value;
+
+            emit_changed();
+        }
+
+        return *this;
+    }
+
+    live_property &move_value(value_type &&value)
+    {
+        if (emit_changing(value))
+        {
+            _value = std::forward<value_type>(value);
+
+            emit_changed();
+        }
+
+        return *this;
+    }
+
     bool emit_changing(const value_type &value)
     {
         value_changing_context context{ *this, value };
