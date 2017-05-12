@@ -42,5 +42,5 @@ int main()
 
     std::cout << "int_prop = " << int_prop << std::endl;
 
-	return 0;
+    return 0;
 }
