@@ -5,26 +5,38 @@
 int main()
 {
     using live_int = nstd::live_property<int>;
+    using live_string = nstd::live_property<std::string>;
 
 	live_int int_prop{ "integer property for tests" }, dummy_int_prop{ "dummy" };
 	std::vector<nstd::signalslot::connection> conections;
-	conections.emplace_back(
-    int_prop.value_changing.connect([](auto &&ctx)
+    auto changing_callback = [](auto &&ctx)
     {
-        std::cout << "The property '" << ctx.property.name() << "' changing: from [" << ctx.property << "] to [" << ctx.new_value << "]" << std::endl;
+        std::cout << "The property '" << ctx.property.name() << "' changing: from [" << ctx.property.value() << "] to [" << ctx.new_value << "]" << std::endl;
 
-        if (ctx.cancel = ctx.new_value < 0; ctx.cancel)
+        using value_type = typename std::decay<decltype(ctx.property.value())>::type;
+
+        if constexpr (std::is_arithmetic<value_type>::value)
         {
-            std::cout << "<<<negative integers are not allowed! The change was cancelled by a slot!>>>" << std::endl;
+            if (ctx.cancel = ctx.new_value < 0; ctx.cancel)
+            {
+                std::cout << "<<<negative numbers are not allowed! The change was cancelled by a slot!>>>" << std::endl;
+            }
         }
-    })
-    );
-	conections.emplace_back(
-    int_prop.value_changed.connect([](auto &&property)
+        else if constexpr (std::is_same<value_type, std::string>::value)
+        {
+            if (ctx.cancel = std::empty(ctx.new_value); ctx.cancel)
+            {
+                std::cout << "<<<empty strings are not allowed! The change was cancelled by a slot!>>>" << std::endl;
+            }
+        }
+    };
+	auto changed_callback = [](auto &&property)
     {
-        std::cout << "The property '" << property.name() << "' changed to: " << property << std::endl;
-    })
-    );
+        std::cout << "The property '" << property.name() << "' changed to: " << property.value() << std::endl;
+    };
+
+	conections.emplace_back(int_prop.value_changing.connect(changing_callback));
+	conections.emplace_back(int_prop.value_changed.connect(changed_callback));
 
 	int raw_int = 50;
 	dummy_int_prop = 222;
@@ -38,7 +50,7 @@ int main()
 
 	int_prop = dummy_int_prop;
 
-	std::cout << "now comparing int_prop == dummy_int_prop (expecting: true): " << std::boolalpha << (int_prop == dummy_int_prop) << std::endl;
+	std::cout << "now comparing int_prop == dummy_int_prop (expecting: true): " << (int_prop == dummy_int_prop) << std::endl;
 
 	int_prop = -1;
 	std::cout << "int_prop = " << int_prop << std::endl;
@@ -49,6 +61,16 @@ int main()
     int_prop = -1;
 
     std::cout << "int_prop = " << int_prop << std::endl;
+
+    live_string str_prop{ "string property for tests", "___" }, dummy_string_prop{ "dummy" };
+
+	conections.emplace_back(str_prop.value_changing.connect(changing_callback));
+	conections.emplace_back(str_prop.value_changed.connect(changed_callback));
+
+	str_prop = "Hello World!";
+	str_prop = "";
+
+	std::cout << "str_prop = " << str_prop.value() << std::endl;
 
     return 0;
 }

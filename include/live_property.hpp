@@ -39,7 +39,7 @@ public:
         bool cancel = false;
     };
 
-    live_property(const std::string &name) : _name{ name } {}
+    live_property(const std::string &name, const value_type &value = value_type()) : _name{ name }, _value{ value } {}
 
     live_property(const live_property &other)
     {
@@ -88,7 +88,7 @@ public:
 
     live_property &operator +=(const value_type &value)
     {
-        return assign_value(_value + value);
+        return move_value(_value + value);
     }
 
     live_property &operator +=(const live_property &other)
@@ -98,7 +98,7 @@ public:
 
     live_property &operator -=(const value_type &value)
     {
-        return assign_value(_value - value);
+        return move_value(_value - value);
     }
 
     live_property &operator -=(const live_property &other)
@@ -108,7 +108,7 @@ public:
 
     live_property &operator *=(const value_type &value)
     {
-        return assign_value(_value * value);
+        return move_value(_value * value);
     }
 
     live_property &operator *=(const live_property &other)
@@ -118,7 +118,7 @@ public:
 
     live_property &operator /=(const value_type &value)
     {
-        return assign_value(_value / value);
+        return move_value(_value / value);
     }
 
     live_property &operator /=(const live_property &other)
@@ -128,7 +128,7 @@ public:
 
     live_property &operator >>=(const value_type &value)
     {
-        return assign_value(_value >> value);
+        return move_value(_value >> value);
     }
 
     live_property &operator >>=(const live_property &other)
@@ -138,7 +138,7 @@ public:
 
     live_property &operator <<=(const value_type &value)
     {
-        return assign_value(_value << value);
+        return move_value(_value << value);
     }
 
     live_property &operator <<=(const live_property &other)
@@ -148,7 +148,7 @@ public:
 
     live_property &operator &=(const value_type &value)
     {
-        return assign_value(_value & value);
+        return move_value(_value & value);
     }
 
     live_property &operator &=(const live_property &other)
@@ -158,7 +158,7 @@ public:
 
     live_property &operator |=(const value_type &value)
     {
-        return assign_value(_value | value);
+        return move_value(_value | value);
     }
 
     live_property &operator |=(const live_property &other)
@@ -168,7 +168,7 @@ public:
 
     live_property &operator ^=(const value_type &value)
     {
-        return assign_value(_value ^ value);;
+        return move_value(_value ^ value);;
     }
 
     live_property &operator ^=(const live_property &other)
@@ -178,7 +178,7 @@ public:
 
     live_property &operator %=(const value_type &value)
     {
-        return assign_value(_value % value);;
+        return move_value(_value % value);;
     }
 
     live_property &operator %=(const live_property &other)
@@ -229,6 +229,6 @@ private:
     }
 
     std::string _name;
-    value_type _value = value_type();
+    value_type _value;
 };
 }
