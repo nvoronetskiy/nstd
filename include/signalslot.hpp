@@ -240,7 +240,7 @@ public:
 
         auto end = _slots.end();
 
-        _slots.erase(std::remove_if(_slots.begin(), end, [&](auto &callable)
+        _slots.erase(std::remove_if(_slots.begin(), end, [&args...](auto &callable)
         {
             if (callable.is_disconnected()) return true;
 
@@ -252,10 +252,10 @@ public:
 
     connection connect(std::function<void(Args...)> &&callable)
     {
-        std::scoped_lock lock(_connect_lock);
-
         slot<Args...> new_slot(std::forward<std::function<void(Args...)>>(callable));
         connection to_return(new_slot);
+
+        std::scoped_lock lock(_connect_lock);
 
         _pending_connections.erase(std::remove_if(_pending_connections.begin(), _pending_connections.end(), std::mem_fn(&slot<Args...>::is_disconnected)), _pending_connections.end());
         _pending_connections.emplace_back(std::move(new_slot));
@@ -266,12 +266,12 @@ public:
     template<typename T>
     connection connect(T *instance, void (T::*member_function)(Args...))
     {
-        return connect([=](Args... args) { (instance->*member_function)(args...); });
+        return connect([instance, member_function](Args... args) { (instance->*member_function)(args...); });
     }
 
     void clear()
     {
-        std::scoped_lock lock(_connect_lock);
+        std::scoped_lock lock(_connect_lock, _emit_lock);
 
         _pending_connections.clear();
         _slots.clear();
@@ -279,13 +279,14 @@ public:
 
     size_t size() const
     {
+        std::scoped_lock lock(_emit_lock);
+
         return _slots.size();
     }
 
 private:
-    std::mutex _emit_lock, _connect_lock;
-    std::vector<slot<Args...>> _slots;
-    std::vector<slot<Args...>> _pending_connections;
+    std::mutex _connect_lock, _emit_lock;
+    std::vector<slot<Args...>> _slots, _pending_connections;
 };
 }
 }
