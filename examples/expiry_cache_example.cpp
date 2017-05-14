@@ -16,7 +16,7 @@ int main()
 
 	nstd::expiry_cache<std::string, Item*> a(800ms);
 	a.set_vacuum_idle_period(200ms);
-	auto c = a.expired.connect([](auto &k, auto &v)
+	auto c = a.signal_data_expired.connect([](auto &k, auto &v)
     {
         std::cout << "Key: '" << k << "' expired: " << v << std::endl;
         delete v;

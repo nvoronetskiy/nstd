@@ -55,8 +55,8 @@ int main()
         std::cout << "The property '" << property.name() << "' changed to: " << property.value() << std::endl;
     };
 
-	conections.emplace_back(int_prop.value_changing.connect(changing_callback));
-	conections.emplace_back(int_prop.value_changed.connect(changed_callback));
+	conections.emplace_back(int_prop.signal_value_changing.connect(changing_callback));
+	conections.emplace_back(int_prop.signal_value_changed.connect(changed_callback));
 
 	int raw_int = 50;
 	dummy_int_prop = 222;
@@ -90,8 +90,8 @@ int main()
 
     live_string str_prop{ "string property for tests", "___" }, dummy_string_prop{ "dummy" };
 
-	conections.emplace_back(str_prop.value_changing.connect(changing_callback));
-	conections.emplace_back(str_prop.value_changed.connect(changed_callback));
+	conections.emplace_back(str_prop.signal_value_changing.connect(changing_callback));
+	conections.emplace_back(str_prop.signal_value_changed.connect(changed_callback));
 
 	str_prop = "Hello World!";
 	str_prop = "";

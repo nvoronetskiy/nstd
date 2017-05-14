@@ -188,7 +188,7 @@ public:
 		_auto_vacuum = _cancel_auto_vacuum = false;
 	}
 
-    nstd::signal_slot::signal<const key_type &, value_type &> expired;
+    nstd::signal_slot::signal<const key_type &, value_type &> signal_data_expired;
 
 private:
 	std::unordered_map<key_type, std::tuple<std::chrono::time_point<std::chrono::high_resolution_clock>, std::chrono::milliseconds, value_type>> _data;
@@ -218,7 +218,7 @@ private:
 	{
 	    auto &val = it->second;
 
-		expired.emit(it->first, std::get<2>(val));
+		signal_data_expired.emit(it->first, std::get<2>(val));
 
 		_data.erase(it);
 	}

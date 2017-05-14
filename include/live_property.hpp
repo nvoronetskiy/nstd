@@ -228,8 +228,8 @@ public:
         return operator --(), return_value;
     }
 
-    nstd::signal_slot::signal<value_changing_context&> value_changing;
-    nstd::signal_slot::signal<const live_property&> value_changed;
+    nstd::signal_slot::signal<value_changing_context&> signal_value_changing;
+    nstd::signal_slot::signal<const live_property&> signal_value_changed;
 
 private:
     live_property &assign_value(const value_type &value)
@@ -260,14 +260,14 @@ private:
     {
         value_changing_context context{ *this, value };
 
-        value_changing.emit(context);
+        signal_value_changing.emit(context);
 
         return !context.cancel;
     }
 
     void emit_changed()
     {
-        value_changed.emit(*this);
+        signal_value_changed.emit(*this);
     }
 
     std::string _name;
