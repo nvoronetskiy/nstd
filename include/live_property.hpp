@@ -22,7 +22,7 @@ SOFTWARE.
 
 #include <string>
 #include <string_view>
-#include "signalslot.hpp"
+#include "signal_slot.hpp"
 
 namespace nstd
 {
@@ -228,8 +228,8 @@ public:
         return operator --(), return_value;
     }
 
-    nstd::signalslot::signal<value_changing_context&> value_changing;
-    nstd::signalslot::signal<const live_property&> value_changed;
+    nstd::signal_slot::signal<value_changing_context&> value_changing;
+    nstd::signal_slot::signal<const live_property&> value_changed;
 
 private:
     live_property &assign_value(const value_type &value)

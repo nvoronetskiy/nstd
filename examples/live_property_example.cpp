@@ -28,7 +28,7 @@ int main()
     using live_string = nstd::live_property<std::string>;
 
 	live_int int_prop{ "integer property for tests" }, dummy_int_prop{ "dummy" };
-	std::vector<nstd::signalslot::connection> conections;
+	std::vector<nstd::signal_slot::connection> conections;
     auto changing_callback = [](auto &&ctx)
     {
         std::cout << "The property '" << ctx.property.name() << "' changing: from [" << ctx.property.value() << "] to [" << ctx.new_value << "]" << std::endl;

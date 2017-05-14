@@ -26,7 +26,7 @@ SOFTWARE.
 
 namespace nstd
 {
-namespace signalslot
+namespace signal_slot
 {
 template <typename T>
 struct has_value_type
