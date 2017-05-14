@@ -168,7 +168,7 @@ public:
 
     live_property &operator ^=(const value_type &value)
     {
-        return move_value(_value ^ value);;
+        return move_value(_value ^ value);
     }
 
     live_property &operator ^=(const live_property &other)
@@ -178,12 +178,54 @@ public:
 
     live_property &operator %=(const value_type &value)
     {
-        return move_value(_value % value);;
+        return move_value(_value % value);
     }
 
     live_property &operator %=(const live_property &other)
     {
         return operator %= (other._value);
+    }
+
+    live_property &operator ++()
+    {
+        auto value { _value };
+
+        if (emit_changing(++value))
+        {
+            ++_value;
+
+            emit_changed();
+        }
+
+        return *this;
+    }
+
+    live_property operator ++(int)
+    {
+        live_property return_value{ _name, _value };
+
+        return operator ++(), return_value;
+    }
+
+    live_property &operator --()
+    {
+        auto value { _value };
+
+        if (emit_changing(--value))
+        {
+            --_value;
+
+            emit_changed();
+        }
+
+        return *this;
+    }
+
+    live_property operator --(int)
+    {
+        live_property return_value{ _name, _value };
+
+        return operator --(), return_value;
     }
 
     nstd::signalslot::signal<value_changing_context&> value_changing;

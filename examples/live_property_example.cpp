@@ -55,6 +55,12 @@ int main()
 	int_prop = -1;
 	std::cout << "int_prop = " << int_prop << std::endl;
 
+	std::cout << "testing ++ and --: " << std::endl;
+    ++int_prop;
+    int_prop++;
+    --int_prop;
+    int_prop--;
+
 	conections.clear(); //auto-disconnect from all slots
     std::cout << "no slots are called from now on since we destroied all connections..." << std::endl << "...setting int_prop to -1 should not be restricted now..." << std::endl;
 
