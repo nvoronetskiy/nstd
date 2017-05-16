@@ -20,12 +20,12 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#include <string>
-#include <string_view>
 #include "signal_slot.hpp"
 
 namespace nstd
 {
+using namespace std::string_literals;
+
 template<typename T>
 class live_property
 {
@@ -39,7 +39,12 @@ public:
         bool cancel = false;
     };
 
-    live_property(const std::string &name, const value_type &value = value_type()) : _name{ name }, _value{ value } {}
+    live_property(const std::string &name, const value_type &value = value_type()) :
+        signal_value_changing{ "live_property.signal_value_changing."s + name },
+        signal_value_changed{ "live_property.signal_value_changed."s + name },
+        _name{ name }, _value{ value }
+    {
+    }
 
     live_property(const live_property &other)
     {

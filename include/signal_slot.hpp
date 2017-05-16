@@ -23,6 +23,8 @@ SOFTWARE.
 #include <type_traits>
 #include <functional>
 #include <mutex>
+#include <string>
+#include <string_view>
 
 namespace nstd
 {
@@ -190,7 +192,7 @@ public:
     connection() = default;
 
     template<typename... Args>
-    explicit connection(slot<Args...> &s) : _slot{ &s._connection }
+    explicit connection(slot<Args...> &s, const std::string &connection_name = std::string()) : _slot{ &s._connection }, _connection_name { connection_name }
     {
     }
 
@@ -200,6 +202,7 @@ public:
         disconnect();
 
         _slot = std::move(other._slot);
+        _connection_name = std::move(other._connection_name);
 
         return *this;
     }
@@ -214,8 +217,19 @@ public:
         if (_slot) _slot.disconnect();
     }
 
+    void set_connection_name(const std::string &connection_name)
+    {
+        _connection_name = connection_name;
+    }
+
+    std::string_view get_connection_name() const
+    {
+        return _connection_name;
+    }
+
 protected:
     paired_ptr<> _slot;
+    std::string _connection_name;
 };
 
 template<typename... Args>
@@ -223,6 +237,7 @@ class signal
 {
 public:
     signal() = default;
+    signal(const std::string &signal_name) : _signal_name{ signal_name } {}
     signal(signal &&other) = default;
     signal &operator=(signal &&other) = default;
 
@@ -253,7 +268,7 @@ public:
     connection connect(std::function<void(Args...)> &&callable)
     {
         slot<Args...> new_slot(std::forward<std::function<void(Args...)>>(callable));
-        connection to_return(new_slot);
+        connection to_return(new_slot, _signal_name);
 
         std::scoped_lock lock(_connect_lock);
 
@@ -284,7 +299,18 @@ public:
         return _slots.size();
     }
 
+    void set_signal_name(const std::string &signal_name)
+    {
+        _signal_name = signal_name;
+    }
+
+    std::string_view get_signal_name() const
+    {
+        return _signal_name;
+    }
+
 private:
+    std::string _signal_name;
     std::mutex _connect_lock, _emit_lock;
     std::vector<slot<Args...>> _slots, _pending_connections;
 };

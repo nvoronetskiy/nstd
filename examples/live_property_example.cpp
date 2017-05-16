@@ -58,6 +58,8 @@ int main()
 	conections.emplace_back(int_prop.signal_value_changing.connect(changing_callback));
 	conections.emplace_back(int_prop.signal_value_changed.connect(changed_callback));
 
+	for (auto &&c : conections) std::cout << "connection name: '" << c.get_connection_name() << "'" << std::endl;
+
 	int raw_int = 50;
 	dummy_int_prop = 222;
 	int_prop = 1;
