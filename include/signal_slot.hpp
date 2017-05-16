@@ -20,11 +20,11 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#include <type_traits>
 #include <functional>
 #include <mutex>
 #include <string>
 #include <string_view>
+#include <type_traits>
 
 namespace nstd
 {
