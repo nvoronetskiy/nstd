@@ -40,8 +40,8 @@ public:
     };
 
     live_property(const std::string &name, const value_type &value = value_type()) :
-        signal_value_changing{ "live_property.signal_value_changing."s + name },
-        signal_value_changed{ "live_property.signal_value_changed."s + name },
+        signal_value_changing{ "/live_property/"s + name + "/signal_value_changing"s },
+        signal_value_changed{ "/live_property/"s + name + "/signal_value_changed"s },
         _name{ name }, _value{ value }
     {
     }

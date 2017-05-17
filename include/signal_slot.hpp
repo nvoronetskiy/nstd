@@ -186,13 +186,19 @@ public:
     void clear() { _connection.disconnect(); }
 };
 
+class signal_base
+{
+public:
+    virtual std::string_view name() const = 0;
+};
+
 class connection
 {
 public:
     connection() = default;
 
     template<typename... Args>
-    explicit connection(slot<Args...> &s, const std::string &connection_name = std::string()) : _slot{ &s._connection }, _connection_name { connection_name }
+    explicit connection(const signal_base *signal, slot<Args...> &s) : _slot{ &s._connection }, _signal { signal }
     {
     }
 
@@ -202,7 +208,7 @@ public:
         disconnect();
 
         _slot = std::move(other._slot);
-        _connection_name = std::move(other._connection_name);
+        _signal = std::move(other._signal);
 
         return *this;
     }
@@ -217,27 +223,22 @@ public:
         if (_slot) _slot.disconnect();
     }
 
-    void set_connection_name(const std::string &connection_name)
+    const signal_base &signal() const
     {
-        _connection_name = connection_name;
-    }
-
-    std::string_view get_connection_name() const
-    {
-        return _connection_name;
+        return *_signal;
     }
 
 protected:
     paired_ptr<> _slot;
-    std::string _connection_name;
+    const signal_base *_signal;
 };
 
 template<typename... Args>
-class signal
+class signal : public signal_base
 {
 public:
     signal() = default;
-    signal(const std::string &signal_name) : _signal_name{ signal_name } {}
+    signal(const std::string &name) : _name{ name } {}
     signal(signal &&other) = default;
     signal &operator=(signal &&other) = default;
 
@@ -268,7 +269,7 @@ public:
     connection connect(std::function<void(Args...)> &&callable)
     {
         slot<Args...> new_slot(std::forward<std::function<void(Args...)>>(callable));
-        connection to_return(new_slot, _signal_name);
+        connection to_return(this, new_slot);
 
         std::scoped_lock lock(_connect_lock);
 
@@ -299,18 +300,18 @@ public:
         return _slots.size();
     }
 
-    void set_signal_name(const std::string &signal_name)
+    void name(const std::string &name)
     {
-        _signal_name = signal_name;
+        _name = name;
     }
 
-    std::string_view get_signal_name() const
+    virtual std::string_view name() const override
     {
-        return _signal_name;
+        return _name;
     }
 
 private:
-    std::string _signal_name;
+    std::string _name;
     std::mutex _connect_lock, _emit_lock;
     std::vector<slot<Args...>> _slots, _pending_connections;
 };
