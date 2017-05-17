@@ -64,11 +64,18 @@ int main()
 	dummy_int_prop = 222;
 	int_prop = 1;
 	int_prop = 150;
+
+	std::cout << "...temporary disabling value_changing signal..." << std::endl;
+	conections[0].signal().enabled(false);
+
 	int_prop = raw_int;
 	int_prop *= 7;
 
 	std::cout << "...checking for oprator== works in C++17 as expected..." << std::endl;
 	std::cout << "comparing int_prop == dummy_int_prop (expecting: false): " << std::boolalpha << (int_prop == dummy_int_prop) << std::endl;
+
+	std::cout << "...enabling value_changing signal again..." << std::endl;
+	conections[0].signal().enabled(true);
 
 	int_prop = dummy_int_prop;
 

@@ -189,7 +189,10 @@ public:
 class signal_base
 {
 public:
+    virtual ~signal_base() = default;
     virtual std::string_view name() const = 0;
+    virtual bool enabled() const = 0;
+    virtual void enabled(bool enabled) const = 0;
 };
 
 class connection
@@ -198,7 +201,7 @@ public:
     connection() = default;
 
     template<typename... Args>
-    explicit connection(const signal_base *signal, slot<Args...> &s) : _slot{ &s._connection }, _signal { signal }
+    connection(const signal_base *signal, slot<Args...> &s) : _slot{ &s._connection }, _signal { signal }
     {
     }
 
@@ -241,10 +244,15 @@ public:
     signal(const std::string &name) : _name{ name } {}
     signal(signal &&other) = default;
     signal &operator=(signal &&other) = default;
+    virtual ~signal() override = default;
 
     void emit(const Args &... args)
     {
+        if (!_enabled) return;
+
         std::scoped_lock lock(_emit_lock);
+
+        if (!_enabled) return;
 
         {
             std::scoped_lock lock(_connect_lock);
@@ -302,18 +310,37 @@ public:
 
     void name(const std::string &name)
     {
+        std::scoped_lock lock(_name_lock);
+
         _name = name;
     }
 
     virtual std::string_view name() const override
     {
+        std::scoped_lock lock(_name_lock);
+
         return _name;
+    }
+
+    virtual bool enabled() const
+    {
+        std::scoped_lock lock(_emit_lock);
+
+        return _enabled;
+    }
+
+    virtual void enabled(bool enabled) const
+    {
+        std::scoped_lock lock(_emit_lock);
+
+        _enabled = enabled;
     }
 
 private:
     std::string _name;
-    std::mutex _connect_lock, _emit_lock;
     std::vector<slot<Args...>> _slots, _pending_connections;
+    mutable std::mutex _connect_lock, _emit_lock, _name_lock;
+    mutable bool _enabled = true;
 };
 }
 }
