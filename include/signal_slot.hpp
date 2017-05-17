@@ -20,6 +20,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+#include <atomic>
 #include <chrono>
 #include <functional>
 #include <mutex>
@@ -329,15 +330,11 @@ public:
 
     virtual bool enabled() const
     {
-        std::scoped_lock lock(_emit_lock);
-
         return _enabled;
     }
 
     virtual void enabled(bool enabled) const
     {
-        std::scoped_lock lock(_emit_lock);
-
         _enabled = enabled;
     }
 
@@ -345,7 +342,7 @@ protected:
     std::string _name;
     std::vector<slot<Args...>> _slots, _pending_connections;
     mutable std::mutex _connect_lock, _emit_lock, _name_lock;
-    mutable bool _enabled = true;
+    mutable std::atomic_bool _enabled = true;
 };
 
 template<typename... Args>
@@ -393,16 +390,16 @@ public:
 
 protected:
     std::queue<std::tuple<Args...>> _signal_queue;
-    volatile bool _cancelled = false;
+    std::atomic_bool _cancelled { false };
     mutable std::mutex _emit_lock;
-    std::chrono::microseconds _throttle_ms = 100ms;
+    std::atomic<std::chrono::microseconds> _throttle_ms { 100ms };
     std::thread _dispatcher_thread;
 
     void queue_dispatcher()
     {
         while (!_cancelled)
         {
-            std::this_thread::sleep_for(_throttle_ms);
+            std::this_thread::sleep_for(_throttle_ms.load());
             std::scoped_lock lock(_emit_lock);
 
             if (std::empty(_signal_queue)) continue;

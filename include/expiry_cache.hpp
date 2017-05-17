@@ -20,11 +20,12 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+#include <atomic>
 #include <chrono>
 #include <memory>
 #include <thread>
-#include <unordered_map>
 #include <tuple>
+#include <unordered_map>
 #include "signal_slot.hpp"
 
 namespace nstd
@@ -54,7 +55,7 @@ public:
 
 		if (it != _data.end()) _erase(it);
 
-		_data.emplace(key, std::make_tuple(std::chrono::high_resolution_clock::now(), (expiry_duration_ms == 0ms) ? _expiry_duration_ms : expiry_duration_ms, value));
+		_data.emplace(key, std::make_tuple(std::chrono::high_resolution_clock::now(), (expiry_duration_ms == 0ms) ? _expiry_duration_ms.load() : expiry_duration_ms, value));
 	}
 
 	bool exists(const key_type &key)
@@ -94,8 +95,6 @@ public:
 
 	void set_access_prolongs(bool prolongs = true)
 	{
-	    std::scoped_lock lock {_mutex};
-
 		_access_prolongs = prolongs;
 	}
 
@@ -107,8 +106,6 @@ public:
 	template<typename duration_type>
 	void set_expiry(const duration_type &duration)
 	{
-	    std::scoped_lock lock {_mutex};
-
 		_expiry_duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(duration);
 	}
 
@@ -135,7 +132,7 @@ public:
 
 		if (it != _data.end()) return std::get<1>(it->second);
 
-		return 0ms;
+		return _expiry_duration_ms;
 	}
 
 	void clear()
@@ -189,7 +186,6 @@ public:
 		if (_auto_vacuum) return;
 
 		_auto_vacuum_thread = std::thread([this]() { _auto_vacuum_procedure(this); });
-
 		_auto_vacuum = true;
 	}
 
@@ -221,7 +217,7 @@ private:
 		{
 			auto now{ std::chrono::high_resolution_clock::now() };
 
-			if (std::chrono::duration_cast<std::chrono::milliseconds>(now - time) > _vacuum_idle_period_ms)
+			if (std::chrono::duration_cast<std::chrono::milliseconds>(now - time) > _vacuum_idle_period_ms.load())
 			{
 				time = now;
 
@@ -243,12 +239,12 @@ private:
 		_data.erase(it);
 	}
 
-	std::chrono::milliseconds _expiry_duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(10min);
-	std::chrono::milliseconds _vacuum_idle_period_ms = std::chrono::duration_cast<std::chrono::milliseconds>(1min);
+	std::atomic<std::chrono::milliseconds> _expiry_duration_ms { 10min };
+	std::atomic<std::chrono::milliseconds> _vacuum_idle_period_ms { 1min };
 	mutable std::mutex _mutex;
-	bool _access_prolongs = false;
-	bool _auto_vacuum = false;
+	std::atomic_bool _access_prolongs { false };
+	std::atomic_bool _auto_vacuum { false };
+	std::atomic_bool _cancel_auto_vacuum { false };
 	std::thread _auto_vacuum_thread;
-	volatile bool _cancel_auto_vacuum = false;
 };
 }
