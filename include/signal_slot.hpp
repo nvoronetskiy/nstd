@@ -20,14 +20,19 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+#include <chrono>
 #include <functional>
 #include <mutex>
+#include <queue>
 #include <string>
 #include <string_view>
+#include <thread>
+#include <tuple>
 #include <type_traits>
 
 namespace nstd
 {
+using namespace std::chrono_literals;
 namespace signal_slot
 {
 template <typename T>
@@ -133,7 +138,7 @@ public:
         	return !(_connected_paired_ptr);
 	}
 
-private:
+protected:
 	connected_paired_ptr_type *_connected_paired_ptr = nullptr;
 
 };
@@ -172,7 +177,7 @@ bool operator!=(std::nullptr_t, const paired_ptr<T1, T2> & rhs)
 template<typename... Args>
 class slot
 {
-private:
+protected:
     std::function<void (Args...)> _functor;
     paired_ptr<> _connection;
 
@@ -336,11 +341,79 @@ public:
         _enabled = enabled;
     }
 
-private:
+protected:
     std::string _name;
     std::vector<slot<Args...>> _slots, _pending_connections;
     mutable std::mutex _connect_lock, _emit_lock, _name_lock;
     mutable bool _enabled = true;
+};
+
+template<typename... Args>
+class throttled_signal : public signal<Args...>
+{
+public:
+    using base_class = signal<Args...>;
+
+    throttled_signal()
+    {
+        _dispatcher_thread = std::thread([this](){ queue_dispatcher(); });
+    }
+
+    throttled_signal(const std::string &name) : base_class{ name }
+    {
+        _dispatcher_thread = std::thread([this](){ queue_dispatcher(); });
+    }
+    throttled_signal(throttled_signal &&other) = default;
+    throttled_signal &operator=(throttled_signal &&other) = default;
+
+    virtual ~throttled_signal() override
+    {
+        _cancelled = true;
+
+        if (_dispatcher_thread.joinable()) _dispatcher_thread.join();
+    }
+
+    void emit(const Args &... args)
+    {
+        std::scoped_lock lock(_emit_lock);
+
+        _signal_queue.push(args...);
+    }
+
+    template<typename Duration>
+    void throttle_ms(const Duration &duration)
+    {
+        _throttle_ms = std::chrono::duration_cast<std::chrono::microseconds>(duration);
+    }
+
+    std::chrono::microseconds throttle_ms() const
+    {
+        return _throttle_ms;
+    }
+
+protected:
+    std::queue<std::tuple<Args...>> _signal_queue;
+    volatile bool _cancelled = false;
+    mutable std::mutex _emit_lock;
+    std::chrono::microseconds _throttle_ms = 100ms;
+    std::thread _dispatcher_thread;
+
+    void queue_dispatcher()
+    {
+        while (!_cancelled)
+        {
+            std::this_thread::sleep_for(_throttle_ms);
+            std::scoped_lock lock(_emit_lock);
+
+            if (std::empty(_signal_queue)) continue;
+            if (_cancelled) return;
+
+            auto args = std::move(_signal_queue.front());
+            _signal_queue.pop();
+
+            std::apply([&](const Args&... a){ base_class::emit(a...); }, args);
+        }
+    }
 };
 }
 }

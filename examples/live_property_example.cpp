@@ -107,5 +107,17 @@ int main()
 
 	std::cout << "str_prop = " << str_prop.value() << std::endl;
 
+	nstd::signal_slot::throttled_signal<std::string> sg("THROTTLED");
+	auto ts = sg.connect([&sg](auto &&str){ std::cout << "throttle: " << str << "; " << sg.name() << std::endl; });
+
+	constexpr int sg_count {10};
+	for (auto idx{0}; idx < sg_count; ++idx)
+        sg.emit("throttled signal emitted...");
+
+	using namespace std::chrono_literals;
+	std::this_thread::sleep_for(sg.throttle_ms() * sg_count + 200ms);
+
+	std::cout << "done..." << std::endl;
+
     return 0;
 }

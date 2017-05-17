@@ -129,7 +129,7 @@ public:
 
 	const std::chrono::milliseconds get_expiry(const key_type &key) const
 	{
-	    std::scoped_lock lock {const_cast<self_type*>(this)->_mutex};
+	    std::scoped_lock lock {_mutex};
 
 		auto it{ _data.find(key) };
 
@@ -147,7 +147,7 @@ public:
 
 	size_t size() const
 	{
-	    std::scoped_lock lock {const_cast<self_type*>(this)->_mutex};
+	    std::scoped_lock lock {_mutex};
 
 		return _data.size();
 	}
@@ -245,7 +245,7 @@ private:
 
 	std::chrono::milliseconds _expiry_duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(10min);
 	std::chrono::milliseconds _vacuum_idle_period_ms = std::chrono::duration_cast<std::chrono::milliseconds>(1min);
-	std::mutex _mutex;
+	mutable std::mutex _mutex;
 	bool _access_prolongs = false;
 	bool _auto_vacuum = false;
 	std::thread _auto_vacuum_thread;
