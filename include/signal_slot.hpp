@@ -129,7 +129,7 @@ public:
 		return _connected_paired_ptr;
 	}
 
-	explicit operator bool() const
+	operator bool() const
 	{
         	return (_connected_paired_ptr);
 	}
@@ -230,7 +230,11 @@ public:
     void disconnect()
     {
         if (_slot) _slot.disconnect();
+
+        _signal = nullptr;
     }
+
+    bool is_disconnected() const { return !_slot; }
 
     const signal_base &signal() const
     {
@@ -377,7 +381,7 @@ public:
     {
         std::scoped_lock lock(_emit_lock);
 
-        _signal_queue.push(args...);
+        _signal_queue.push(std::make_tuple(args...));
 
         if (!_thread_running)
         {
