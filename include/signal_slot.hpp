@@ -356,7 +356,7 @@ public:
     using base_class = signal<Args...>;
 
     throttled_signal() = default;
-    throttled_signal(const std::string &name) : base_class{ name } {}
+    throttled_signal(const std::string &name, const std::chrono::milliseconds &throttle_ms = 100ms) : base_class{ name }, _throttle_ms{ throttle_ms } {}
     throttled_signal(throttled_signal &&other) = default;
     throttled_signal &operator=(throttled_signal &&other) = default;
 
@@ -405,7 +405,7 @@ protected:
     std::queue<std::tuple<Args...>> _signal_queue;
     std::atomic_bool _cancelled { false };
     mutable std::mutex _emit_lock;
-    std::atomic<std::chrono::microseconds> _throttle_ms { 100ms };
+    std::atomic<std::chrono::milliseconds> _throttle_ms { 100ms };
     std::thread _dispatcher_thread;
     std::atomic_bool _thread_running { false };
 

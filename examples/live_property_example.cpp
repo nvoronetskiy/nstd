@@ -110,7 +110,7 @@ int main()
     using namespace std::chrono_literals;
     nstd::signal_slot::connection ts; //should be out of a signal's scope to be destroyed after it's signal thus letting a signal to emit the rest of queued signals...
     {
-        nstd::signal_slot::throttled_signal<std::string> sg("THROTTLED");
+        nstd::signal_slot::throttled_signal<std::string> sg("THROTTLED", 50ms);
         ts = sg.connect([&sg](auto &&str){ std::cout << "throttle: " << str << "; " << sg.name() << std::endl; });
 
         constexpr int sg_count {10};
