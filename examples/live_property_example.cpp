@@ -107,17 +107,28 @@ int main()
 
 	std::cout << "str_prop = " << str_prop.value() << std::endl;
 
-	nstd::signal_slot::throttled_signal<std::string> sg("THROTTLED");
-	auto ts = sg.connect([&sg](auto &&str){ std::cout << "throttle: " << str << "; " << sg.name() << std::endl; });
+    using namespace std::chrono_literals;
+    nstd::signal_slot::connection ts; //should be out of a signal's scope to be destroyed after it's signal thus letting a signal to emit the rest of queued signals...
+    {
+        nstd::signal_slot::throttled_signal<std::string> sg("THROTTLED");
+        ts = sg.connect([&sg](auto &&str){ std::cout << "throttle: " << str << "; " << sg.name() << std::endl; });
 
-	constexpr int sg_count {10};
-	for (auto idx{0}; idx < sg_count; ++idx)
-        sg.emit("throttled signal emitted...");
+        constexpr int sg_count {10};
+        for (auto idx{0}; idx < sg_count; ++idx)
+            sg.emit("throttled signal emitted...");
 
-	using namespace std::chrono_literals;
-	std::this_thread::sleep_for(sg.throttle_ms() * sg_count + 200ms);
+        std::this_thread::sleep_for(300ms);
 
-	std::cout << "done..." << std::endl;
+        for (auto idx{0}; idx < sg_count; ++idx)
+            sg.emit("throttled signal emitted...");
+
+        std::cout << "done..." << std::endl;
+        std::cout << "emitting the rest of queued signals..." << std::endl;
+    }
+
+	std::this_thread::sleep_for(1s);
+
+	std::cout << "exitting..." << std::endl;
 
     return 0;
 }

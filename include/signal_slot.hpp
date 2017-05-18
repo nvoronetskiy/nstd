@@ -239,7 +239,7 @@ public:
 
 protected:
     paired_ptr<> _slot;
-    const signal_base *_signal;
+    const signal_base *_signal = nullptr;
 };
 
 template<typename... Args>
@@ -351,15 +351,8 @@ class throttled_signal : public signal<Args...>
 public:
     using base_class = signal<Args...>;
 
-    throttled_signal()
-    {
-        _dispatcher_thread = std::thread([this](){ queue_dispatcher(); });
-    }
-
-    throttled_signal(const std::string &name) : base_class{ name }
-    {
-        _dispatcher_thread = std::thread([this](){ queue_dispatcher(); });
-    }
+    throttled_signal() = default;
+    throttled_signal(const std::string &name) : base_class{ name } {}
     throttled_signal(throttled_signal &&other) = default;
     throttled_signal &operator=(throttled_signal &&other) = default;
 
@@ -368,6 +361,16 @@ public:
         _cancelled = true;
 
         if (_dispatcher_thread.joinable()) _dispatcher_thread.join();
+
+        std::scoped_lock lock(_emit_lock);
+
+        while (!std::empty(_signal_queue))
+        {
+            auto args = std::move(_signal_queue.front());
+            _signal_queue.pop();
+
+            std::apply([&](const Args&... a){ base_class::emit(a...); }, args);
+        }
     }
 
     void emit(const Args &... args)
@@ -375,6 +378,12 @@ public:
         std::scoped_lock lock(_emit_lock);
 
         _signal_queue.push(args...);
+
+        if (!_thread_running)
+        {
+            _thread_running = true;
+            _dispatcher_thread = std::thread([this](){ queue_dispatcher(); });
+        }
     }
 
     template<typename Duration>
@@ -394,22 +403,27 @@ protected:
     mutable std::mutex _emit_lock;
     std::atomic<std::chrono::microseconds> _throttle_ms { 100ms };
     std::thread _dispatcher_thread;
+    std::atomic_bool _thread_running { false };
 
     void queue_dispatcher()
     {
-        while (!_cancelled)
-        {
-            std::this_thread::sleep_for(_throttle_ms.load());
-            std::scoped_lock lock(_emit_lock);
+        std::unique_lock lock(_emit_lock);
 
-            if (std::empty(_signal_queue)) continue;
+        while (!_cancelled && !std::empty(_signal_queue))
+        {
             if (_cancelled) return;
 
             auto args = std::move(_signal_queue.front());
             _signal_queue.pop();
 
             std::apply([&](const Args&... a){ base_class::emit(a...); }, args);
+
+            lock.unlock();
+            std::this_thread::sleep_for(_throttle_ms.load());
+            lock.lock();
         }
+
+        _thread_running = false;
     }
 };
 }
