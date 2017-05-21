@@ -390,10 +390,9 @@ public:
         }
     }
 
-    template<typename Duration>
-    void throttle_ms(const Duration &duration)
+    void throttle_ms(const std::chrono::milliseconds &duration)
     {
-        _throttle_ms = std::chrono::duration_cast<std::chrono::microseconds>(duration);
+        _throttle_ms = duration;
     }
 
     std::chrono::microseconds throttle_ms() const
@@ -404,31 +403,103 @@ public:
 protected:
     std::queue<std::tuple<Args...>> _signal_queue;
     std::atomic_bool _cancelled { false };
-    mutable std::mutex _emit_lock;
+    std::mutex _emit_lock;
     std::atomic<std::chrono::milliseconds> _throttle_ms { 100ms };
     std::thread _dispatcher_thread;
     std::atomic_bool _thread_running { false };
 
     void queue_dispatcher()
     {
-        std::unique_lock lock(_emit_lock);
-
         while (!_cancelled && !std::empty(_signal_queue))
         {
-            if (_cancelled) return;
+            {
+                std::unique_lock lock(_emit_lock);
+                auto args = std::move(_signal_queue.front());
 
-            auto args = std::move(_signal_queue.front());
-            _signal_queue.pop();
+                _signal_queue.pop();
 
-            std::apply([&](const Args&... a){ base_class::emit(a...); }, args);
+                std::apply([&](const Args&... a){ base_class::emit(a...); }, args);
+            }
 
-            lock.unlock();
             std::this_thread::sleep_for(_throttle_ms.load());
-            lock.lock();
         }
 
         _thread_running = false;
     }
 };
+
+template<typename... Args>
+class timer_signal : public signal<timer_signal<Args...>*, Args...>
+{
+public:
+    using base_class = signal<timer_signal*, Args...>;
+
+    timer_signal() = default;
+    timer_signal(const std::string &name, const std::chrono::milliseconds &timer_ms = 1s) : base_class{ name }, _timer_ms{ timer_ms } {}
+    timer_signal(timer_signal &&other) = default;
+    timer_signal &operator=(timer_signal &&other) = default;
+
+    virtual ~timer_signal() override
+    {
+        stop_timer();
+    }
+
+    void start_timer(const Args&... args)
+    {
+        _args = std::make_tuple(this, args...);
+
+        _enabled = true;
+
+        _timer_thread = std::thread([this](){ timer_procedure(); });
+    }
+
+    void stop_timer()
+    {
+        _enabled = false;
+
+        if (_timer_thread.joinable()) _timer_thread.join();
+    }
+
+    void disable_timer_from_slot()
+    {
+        _enabled = false;
+    }
+
+    void timer_ms(const std::chrono::milliseconds &duration)
+    {
+        _timer_ms = duration;
+    }
+
+    std::chrono::microseconds timer_ms() const
+    {
+        return _timer_ms;
+    }
+
+private:
+    std::atomic_bool _enabled { false };
+    std::thread _timer_thread;
+    std::atomic<std::chrono::milliseconds> _timer_ms { 1s };
+    mutable std::mutex _emit_lock;
+    std::tuple<timer_signal*, Args...> _args;
+
+    void timer_procedure()
+    {
+        while (_enabled)
+        {
+            {
+                std::unique_lock lock(_emit_lock);
+
+                std::apply([&](timer_signal *s, const Args&... a){ base_class::emit(s, a...); }, _args);
+
+                if (!_enabled) return;
+            }
+
+            std::this_thread::sleep_for(_timer_ms.load());
+        }
+
+        _enabled = false;
+    }
+};
+
 }
 }

@@ -128,6 +128,30 @@ int main()
 
 	std::this_thread::sleep_for(1s);
 
+	nstd::signal_slot::timer_signal<live_string*> timer("My timer", 500ms);
+
+	int idx { 0 };
+	conections.emplace_back(timer.connect([&idx](auto &&s, auto &&p)
+    {
+        std::cout << "timer: " << s->name() << std::endl;
+        *p = std::to_string(++idx) + " tick...";
+
+        if (idx == 2)
+        {
+            s->timer_ms(200ms);
+            *p = "...timer duration changed to 200ms";
+        }
+
+        if (idx >= 5)
+        {
+            s->disable_timer_from_slot();
+            *p = "...timer stoped... sleeping for some time...";
+        }
+    }));
+	timer.start_timer(&str_prop);
+
+	std::this_thread::sleep_for(5s);
+
 	std::cout << "exitting..." << std::endl;
 
     return 0;
