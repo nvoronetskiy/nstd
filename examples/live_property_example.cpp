@@ -161,7 +161,8 @@ int main()
     {
         auto j = json::parse(jstr);
 
-        std::cout << "JSON property: " << j["JSONObject"s]["property"s] <<std::endl;
+        //std::cout << "JSON property: " << j["/JSONObject/property"_json_pointer] <<std::endl;
+        std::cout << "JSON property: " << j["JSONObject"]["property"] <<std::endl;
     });
 
     json params, rj = {{"JSONObject"s, {{"property"s, "This is the super JSON property..."s}, {"One_more_property"s, 888}}}};
