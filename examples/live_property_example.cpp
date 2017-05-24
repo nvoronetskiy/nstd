@@ -21,13 +21,16 @@ SOFTWARE.
 #include <iostream>
 #include <vector>
 #include "live_property.hpp"
+#include "external/json/json.hpp"
 
 int main()
 {
+    using namespace std::literals;
+
     using live_int = nstd::live_property<int>;
     using live_string = nstd::live_property<std::string>;
 
-	live_int int_prop{ "integer property for tests" }, dummy_int_prop{ "dummy" };
+	live_int int_prop{ "integer property for tests"s }, dummy_int_prop{ "dummy"s };
 	std::vector<nstd::signal_slot::connection> conections;
     auto changing_callback = [](auto &&ctx)
     {
@@ -97,30 +100,29 @@ int main()
 
     std::cout << "int_prop = " << int_prop << std::endl;
 
-    live_string str_prop{ "string property for tests", "___" }, dummy_string_prop{ "dummy" };
+    live_string str_prop{ "string property for tests"s, "___"s }, dummy_string_prop{ "dummy"s };
 
 	conections.emplace_back(str_prop.signal_value_changing.connect(changing_callback));
 	conections.emplace_back(str_prop.signal_value_changed.connect(changed_callback));
 
-	str_prop = "Hello World!";
-	str_prop = "";
+	str_prop = "Hello World!"s;
+	str_prop = ""s;
 
 	std::cout << "str_prop = " << str_prop.value() << std::endl;
 
-    using namespace std::chrono_literals;
     nstd::signal_slot::connection ts; //should be out of a signal's scope to be destroyed after it's signal thus letting a signal to emit the rest of queued signals...
     {
-        nstd::signal_slot::throttled_signal<std::string> sg("THROTTLED", 50ms);
+        nstd::signal_slot::throttled_signal<std::string> sg("THROTTLED"s, 50ms);
         ts = sg.connect([&sg](auto &&str){ std::cout << "throttle: " << str << "; " << sg.name() << std::endl; });
 
         constexpr int sg_count {10};
         for (auto idx{0}; idx < sg_count; ++idx)
-            sg.emit("throttled signal emitted...");
+            sg.emit("throttled signal emitted..."s);
 
         std::this_thread::sleep_for(300ms);
 
         for (auto idx{0}; idx < sg_count; ++idx)
-            sg.emit("throttled signal emitted...");
+            sg.emit("throttled signal emitted..."s);
 
         std::cout << "done..." << std::endl;
         std::cout << "emitting the rest of queued signals..." << std::endl;
@@ -128,29 +130,48 @@ int main()
 
 	std::this_thread::sleep_for(1s);
 
-	nstd::signal_slot::timer_signal<live_string*> timer("My timer", 500ms);
+	nstd::signal_slot::timer_signal<live_string*> timer("My timer"s, 500ms);
 
 	int idx { 0 };
 	conections.emplace_back(timer.connect([&idx](auto &&s, auto &&p)
     {
-        std::cout << "timer: " << s->name() << std::endl;
-        *p = std::to_string(++idx) + " tick...";
+        std::cout << "timer: "s << s->name() << std::endl;
+        *p = std::to_string(++idx) + " tick..."s;
 
         if (idx == 2)
         {
             s->timer_ms(200ms);
-            *p = "...timer duration changed to 200ms";
+            *p = "...timer duration changed to 200ms"s;
         }
 
         if (idx >= 5)
         {
             s->disable_timer_from_slot();
-            *p = "...timer stoped... sleeping for some time...";
+            *p = "...timer stoped... sleeping for some time..."s;
         }
     }));
 	timer.start_timer(&str_prop);
 
 	std::this_thread::sleep_for(5s);
+
+	using json = nlohmann::json;
+	nstd::signal_slot::signal<std::string> jsig("JSON signal"s);
+
+	auto jcon = jsig.connect([](auto &&jstr)
+    {
+        auto j = json::parse(jstr);
+
+        std::cout << "JSON property: " << j["JSONObject"s]["property"s] <<std::endl;
+    });
+
+    json params, rj = {{"JSONObject"s, {{"property"s, "This is the super JSON property..."s}, {"One_more_property"s, 888}}}};
+    params["JSONObject"s] = {{"property"s, "This is the real JSON property..."s}};
+
+    jsig.emit(params.dump());
+    jsig.emit((R"({"JSONObject": {"property": "This is the parsed JSON property..."}})"_json).dump());
+    jsig.emit(rj.dump());
+
+    std::cout << "Pretty printed JSON:" << std::endl << std::setw(3) << rj << std::endl;
 
 	std::cout << "exitting..." << std::endl;
 
