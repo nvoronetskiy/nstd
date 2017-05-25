@@ -164,7 +164,7 @@ int main()
         std::cout << "JSON property: " << j["JSONObject"]["property"] <<std::endl;
     });
 
-    nstd::json params, rj = {{"JSONObject"s, {{"property"s, "This is the super JSON property..."s}, {"One_more_property"s, 888}}}};
+    nstd::json params, rj = {{"JSONObject"s, {{"property"s, "This is the super JSON property..."s}, {"One_more_property"s, 888}, {"Niels Lohmann does amazing json for cpp", true}}}};
     params["JSONObject"s] = {{"property"s, "This is the real JSON property..."s}};
 
     jsig.emit(params.dump());
