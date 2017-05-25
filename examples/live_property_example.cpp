@@ -21,7 +21,7 @@ SOFTWARE.
 #include <iostream>
 #include <vector>
 #include "live_property.hpp"
-#include "external/json/json.hpp"
+#include "json.hpp"
 
 int main()
 {
@@ -154,18 +154,17 @@ int main()
 
 	std::this_thread::sleep_for(5s);
 
-	using json = nlohmann::json;
 	nstd::signal_slot::signal<std::string> jsig("JSON signal"s);
 
 	auto jcon = jsig.connect([](auto &&jstr)
     {
-        auto j = json::parse(jstr);
+        auto j = nstd::json::parse(jstr);
 
         //std::cout << "JSON property: " << j["/JSONObject/property"_json_pointer] <<std::endl;
         std::cout << "JSON property: " << j["JSONObject"]["property"] <<std::endl;
     });
 
-    json params, rj = {{"JSONObject"s, {{"property"s, "This is the super JSON property..."s}, {"One_more_property"s, 888}}}};
+    nstd::json params, rj = {{"JSONObject"s, {{"property"s, "This is the super JSON property..."s}, {"One_more_property"s, 888}}}};
     params["JSONObject"s] = {{"property"s, "This is the real JSON property..."s}};
 
     jsig.emit(params.dump());
