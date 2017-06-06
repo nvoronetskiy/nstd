@@ -24,5 +24,5 @@ SOFTWARE.
 
 namespace nstd
 {
-using namespace nlohmann;
+namespace json = nlohmann;
 }

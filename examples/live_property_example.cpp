@@ -22,6 +22,7 @@ SOFTWARE.
 #include <vector>
 #include "live_property.hpp"
 #include "json.hpp"
+#include "uuid.hpp"
 
 int main()
 {
@@ -158,13 +159,13 @@ int main()
 
 	auto jcon = jsig.connect([](auto &&jstr)
     {
-        auto j = nstd::json::parse(jstr);
+        auto j = nstd::json::json::parse(jstr);
 
         //std::cout << "JSON property: " << j["/JSONObject/property"_json_pointer] <<std::endl;
         std::cout << "JSON property: " << j["JSONObject"]["property"] <<std::endl;
     });
 
-    nstd::json params, rj = {{"JSONObject"s, {{"property"s, "This is the super JSON property..."s}, {"One_more_property"s, 888}, {"Niels Lohmann does amazing json for cpp", true}}}};
+    nstd::json::json params, rj = {{"JSONObject"s, {{"property"s, "This is the super JSON property..."s}, {"One_more_property"s, 888}, {"Niels Lohmann does amazing json for cpp", true}}}};
     params["JSONObject"s] = {{"property"s, "This is the real JSON property..."s}};
 
     jsig.emit(params.dump());
@@ -172,6 +173,12 @@ int main()
     jsig.emit(rj.dump());
 
     std::cout << "Pretty printed JSON:" << std::endl << std::setw(3) << rj << std::endl;
+
+    nstd::signal_slot::signal_set<std::string> ss;
+    auto z = ss.connect("/mainwindow/button/ok"s, [](auto &&s){ std::cout << s << std::endl; });
+    auto zz = ss["/new/channel"s]->connect([](auto &&s){ std::cout << s << std::endl; });
+    for (auto &&sn : ss.get_signal_names()) std::cout << "signal name: " << sn << std::endl;
+    ss.emit("hello..."s);
 
 	std::cout << "exitting..." << std::endl;
 

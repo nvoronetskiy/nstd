@@ -30,6 +30,7 @@ SOFTWARE.
 #include <thread>
 #include <tuple>
 #include <type_traits>
+#include <unordered_set>
 
 namespace nstd
 {
@@ -356,7 +357,8 @@ public:
     using base_class = signal<Args...>;
 
     throttled_signal() = default;
-    throttled_signal(const std::string &name, const std::chrono::milliseconds &throttle_ms = 100ms) : base_class{ name }, _throttle_ms{ throttle_ms } {}
+    template<typename Duration>
+    throttled_signal(const std::string &name, const Duration &throttle_ms = 100ms) : base_class{ name }, _throttle_ms{ std::chrono::duration_cast<std::chrono::milliseconds>(throttle_ms) } {}
     throttled_signal(throttled_signal &&other) = default;
     throttled_signal &operator=(throttled_signal &&other) = default;
 
@@ -390,9 +392,10 @@ public:
         }
     }
 
-    void throttle_ms(const std::chrono::milliseconds &duration)
+    template<typename Duration>
+    void throttle_ms(const Duration &duration)
     {
-        _throttle_ms = duration;
+        _throttle_ms = std::chrono::duration_cast<std::chrono::milliseconds>(duration);
     }
 
     std::chrono::microseconds throttle_ms() const
@@ -435,7 +438,8 @@ public:
     using base_class = signal<timer_signal*, Args...>;
 
     timer_signal() = default;
-    timer_signal(const std::string &name, const std::chrono::milliseconds &timer_ms = 1s) : base_class{ name }, _timer_ms{ timer_ms } {}
+    template<typename Duration>
+    timer_signal(const std::string &name, const Duration &timer_ms = 1s) : base_class{ name }, _timer_ms{ std::chrono::duration_cast<std::chrono::milliseconds>(timer_ms) } {}
     timer_signal(timer_signal &&other) = default;
     timer_signal &operator=(timer_signal &&other) = default;
 
@@ -448,26 +452,27 @@ public:
     {
         _args = std::make_tuple(this, args...);
 
-        _enabled = true;
+        _timer_enabled = true;
 
         _timer_thread = std::thread([this](){ timer_procedure(); });
     }
 
     void stop_timer()
     {
-        _enabled = false;
+        _timer_enabled = false;
 
         if (_timer_thread.joinable()) _timer_thread.join();
     }
 
     void disable_timer_from_slot()
     {
-        _enabled = false;
+        _timer_enabled = false;
     }
 
-    void timer_ms(const std::chrono::milliseconds &duration)
+    template<typename Duration>
+    void timer_ms(const Duration &duration)
     {
-        _timer_ms = duration;
+        _timer_ms = std::chrono::duration_cast<std::chrono::milliseconds>(duration);
     }
 
     std::chrono::microseconds timer_ms() const
@@ -476,7 +481,7 @@ public:
     }
 
 private:
-    std::atomic_bool _enabled { false };
+    std::atomic_bool _timer_enabled { false };
     std::thread _timer_thread;
     std::atomic<std::chrono::milliseconds> _timer_ms { 1s };
     mutable std::mutex _emit_lock;
@@ -484,22 +489,85 @@ private:
 
     void timer_procedure()
     {
-        while (_enabled)
+        while (_timer_enabled)
         {
             {
                 std::unique_lock lock(_emit_lock);
 
                 std::apply([&](timer_signal *s, const Args&... a){ base_class::emit(s, a...); }, _args);
 
-                if (!_enabled) return;
+                if (!_timer_enabled) return;
             }
 
             std::this_thread::sleep_for(_timer_ms.load());
         }
 
-        _enabled = false;
+        _timer_enabled = false;
     }
 };
 
+template<typename... Args>
+class signal_set
+{
+public:
+    signal_set() = default;
+    ~signal_set() = default;
+
+    void emit(const Args &... args) const
+    {
+        for (auto &&s : _signals) s->emit(args...);
+    }
+
+    nstd::signal_slot::connection connect(const std::string &signal_name, std::function<void(Args...)> &&callable)
+    {
+        return (*_signals.emplace(std::make_shared<nstd::signal_slot::signal<Args...>>(signal_name)).first)->connect(std::move(callable));
+    }
+
+    template<typename T>
+    nstd::signal_slot::connection connect(const std::string &signal_name, T *instance, void (T::*member_function)(Args...))
+    {
+        return (*_signals.emplace(std::make_shared<nstd::signal_slot::signal<Args...>>(signal_name)).first)->connect(instance, member_function);
+    }
+
+    std::shared_ptr<nstd::signal_slot::signal<Args...>> get_signal(const std::string &signal_name)
+    {
+        return *_signals.emplace(std::make_shared<nstd::signal_slot::signal<Args...>>(signal_name)).first;
+    }
+
+    bool exists(const std::string &signal_name) const
+    {
+        return _signals.find(signal_name) != _signals.end();
+    }
+
+    std::unordered_set<std::string> get_signal_names() const
+    {
+        std::unordered_set<std::string> signal_names;
+
+        for (auto &&s : _signals) signal_names.emplace(std::string(s->name()));
+
+        return signal_names;
+    }
+
+    std::shared_ptr<nstd::signal_slot::signal<Args...>> operator[](const std::string &signal_name)
+    {
+        return get_signal(signal_name);
+    }
+
+protected:
+    std::unordered_set<std::shared_ptr<nstd::signal_slot::signal<Args...>>> _signals;
+};
+
 }
+}
+
+namespace std
+{
+    template<typename... Args>
+    struct hash<std::shared_ptr<nstd::signal_slot::signal<Args...>>>
+    {
+        size_t operator()(const std::shared_ptr<nstd::signal_slot::signal<Args...>> &s) const
+        {
+            return std::hash<std::string_view>()(s->name());
+        }
+    };
 }
