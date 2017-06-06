@@ -108,6 +108,7 @@ public:
     static bool validate_uuid_string(const std::string &uuid_str)
     {
         if (std::size(uuid_str) != 36) return false;
+        if (uuid_str[14] != '4') return false;
         for (auto pos : dash_positions) if(uuid_str[pos] != *sep_char) return false;
         for (auto it{ std::begin(uuid_str) }, end { std::end(uuid_str) }; it != end; ++it)
         {
@@ -136,7 +137,7 @@ public:
             bytes[0] = *it++;
             bytes[2] = 0;
 
-            uuid_bytes[index++] = static_cast<uint8_t>(std::strtoul(bytes, nullptr, 16));
+            uuid_bytes[index++] = static_cast<uint8_t>(std::stoul(bytes, nullptr, 16));
         }
 
         return std::vector<uint8_t>{uuid_bytes, uuid_bytes + 16};
