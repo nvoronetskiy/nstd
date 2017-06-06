@@ -29,138 +29,141 @@ SOFTWARE.
 
 namespace nstd
 {
+namespace uuid
+{
 
-	class uuid
-	{
-    public:
-        uuid() : uuid_data(16, 0){}
-        uuid(const std::vector<uint8_t> &data) : uuid_data(data) { }
-        uuid(std::vector<uint8_t> &&data) : uuid_data(std::move(data)) { }
-        uuid(uuid&&) = default;
-        uuid(const uuid&) = default;
-        uuid &operator=(const uuid&) = default;
+class uuid
+{
+public:
+    uuid() : uuid_data(16, 0){}
+    uuid(const std::vector<uint8_t> &data) : uuid_data(data) { }
+    uuid(std::vector<uint8_t> &&data) : uuid_data(std::move(data)) { }
+    uuid(uuid&&) = default;
+    uuid(const uuid&) = default;
+    uuid &operator=(const uuid&) = default;
 
-        bool operator ==(const uuid &other) const
+    bool operator ==(const uuid &other) const
+    {
+        if (std::size(uuid_data) != std::size(other.uuid_data)) return false;
+
+        return std::equal(std::begin(uuid_data), std::end(uuid_data), std::begin(other.uuid_data));
+    }
+
+    bool operator !=(const uuid &other) const
+    {
+        return operator==(other);
+    }
+
+    bool is_null() const
+    {
+        return std::all_of(std::begin(uuid_data), std::end(uuid_data), [](auto &&i) { return i == 0; });
+    }
+
+    std::string to_string(bool use_uppercase = false)
+    {
+        static const char *chars[16] { "0123456789abcdef", "0123456789ABCDEF" };
+        std::string result;
+        auto inserter{ std::back_inserter(result) };
+
+        for (auto i{ 0 }; i < 32; ++i)
         {
-            if (std::size(uuid_data) != std::size(other.uuid_data)) return false;
+            auto n = uuid_data[i >> 1];
 
-            return std::equal(std::begin(uuid_data), std::end(uuid_data), std::begin(other.uuid_data));
+            n = (i & 1) ? (n >> 4) : (n & 0xf);
+
+            inserter++ = chars[use_uppercase][n];
         }
 
-        bool operator !=(const uuid &other) const
+        for (auto pos : dash_positions) result.insert(pos, sep_char);
+
+        return result;
+    }
+
+    const std::vector<uint8_t> &data() const
+    {
+        return uuid_data;
+    }
+
+    static uuid generate_v4()
+    {
+        while (!seeded)
         {
-            return operator==(other);
+            seed[0] = rand_dist(rand_gen);
+            seed[1] = rand_dist(rand_gen);
+
+            if (seed[0] && seed[1]) seeded = true;
         }
 
-        bool is_null() const
+        union { uint8_t bytes[16]; uint64_t data[2]; } s;
+
+        s.data[0] = xorshift128plus(seed);
+        s.data[1] = xorshift128plus(seed);
+
+        s.bytes[6] = 0x4;
+        s.bytes[8] = (s.bytes[8] & 0x3) + 8;
+
+        return std::vector<uint8_t>{ s.bytes, s.bytes + 16 };
+    }
+
+    static bool validate_uuid_string(const std::string &uuid_str)
+    {
+        if (std::size(uuid_str) != 36) return false;
+        for (auto pos : dash_positions) if(uuid_str[pos] != *sep_char) return false;
+        for (auto it{ std::begin(uuid_str) }, end { std::end(uuid_str) }; it != end; ++it)
         {
-            return std::all_of(std::begin(uuid_data), std::end(uuid_data), [](auto &&i) { return i == 0; });
+            char ch { *it };
+
+            if (ch == '-') continue;
+            if (!std::isxdigit(ch)) return false;
         }
 
-        std::string to_string(bool use_uppercase = false)
+        return true;
+    }
+
+    static uuid parse(const std::string &uuid_str)
+    {
+        if (!validate_uuid_string(uuid_str)) return {};
+
+        auto index {0};
+        char bytes[3];
+        uint8_t uuid_bytes[16];
+
+        for (auto it = std::begin(uuid_str), end = std::end(uuid_str); it != end; )
         {
-            static const char *chars[16] { "0123456789abcdef", "0123456789ABCDEF" };
-            std::string result;
-            auto inserter{ std::back_inserter(result) };
+            if (*it == '-') { ++it; continue; }
 
-            for (auto i{ 0 }; i < 32; ++i)
-            {
-                auto n = uuid_data[i >> 1];
+            bytes[1] = *it++;
+            bytes[0] = *it++;
+            bytes[2] = 0;
 
-                n = (i & 1) ? (n >> 4) : (n & 0xf);
-
-                inserter++ = chars[use_uppercase][n];
-            }
-
-            for (auto pos : dash_positions) result.insert(pos, sep_char);
-
-            return result;
+            uuid_bytes[index++] = static_cast<uint8_t>(std::strtoul(bytes, nullptr, 16));
         }
 
-        const std::vector<uint8_t> &data() const
-        {
-            return uuid_data;
-        }
-
-        static uuid generate_v4()
-        {
-            while (!seeded)
-            {
-                seed[0] = rand_dist(rand_gen);
-                seed[1] = rand_dist(rand_gen);
-
-                if (seed[0] && seed[1]) seeded = true;
-            }
-
-            union { uint8_t bytes[16]; uint64_t data[2]; } s;
-
-            s.data[0] = xorshift128plus(seed);
-            s.data[1] = xorshift128plus(seed);
-
-            s.bytes[6] = 0x4;
-            s.bytes[8] = (s.bytes[8] & 0x3) + 8;
-
-            return std::vector<uint8_t>{ s.bytes, s.bytes + 16 };
-        }
-
-        static bool validate_uuid_string(const std::string &uuid_str)
-        {
-            if (std::size(uuid_str) != 36) return false;
-            for (auto pos : dash_positions) if(uuid_str[pos] != *sep_char) return false;
-            for (auto it{ std::begin(uuid_str) }, end { std::end(uuid_str) }; it != end; ++it)
-            {
-                char ch { *it };
-
-                if (ch == '-') continue;
-                if (!std::isxdigit(ch)) return false;
-            }
-
-            return true;
-        }
-
-        static uuid parse(const std::string &uuid_str)
-        {
-            if (!validate_uuid_string(uuid_str)) return {};
-
-            auto index {0};
-            char bytes[3];
-            uint8_t uuid_bytes[16];
-
-            for (auto it = std::begin(uuid_str), end = std::end(uuid_str); it != end; )
-            {
-                if (*it == '-') { ++it; continue; }
-
-                bytes[1] = *it++;
-                bytes[0] = *it++;
-                bytes[2] = 0;
-
-                uuid_bytes[index++] = static_cast<uint8_t>(std::strtoul(bytes, nullptr, 16));
-            }
-
-            return std::vector<uint8_t>{uuid_bytes, uuid_bytes + 16};
-        }
+        return std::vector<uint8_t>{uuid_bytes, uuid_bytes + 16};
+    }
 
 private:
-        std::vector<uint8_t> uuid_data;
+    std::vector<uint8_t> uuid_data;
 
-	    static uint64_t xorshift128plus(uint64_t *s)
-	    {
-	        auto s1 = s[0];
-	        const auto s0 = s[1];
+    static uint64_t xorshift128plus(uint64_t *s)
+    {
+        auto s1 = s[0];
+        const auto s0 = s[1];
 
-	        s[0] = s0;
-	        s1 ^= s1 << 23;
-	        s[1] = s1 ^ s0 ^ (s1 >> 18) ^ (s0 >> 5);
+        s[0] = s0;
+        s1 ^= s1 << 23;
+        s[1] = s1 ^ s0 ^ (s1 >> 18) ^ (s0 >> 5);
 
-	        return s[1] + s0;
-	    }
+        return s[1] + s0;
+    }
 
-	    inline static uint64_t seed[2] { 0 };
-        inline static std::mt19937_64 rand_gen{ static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count()) };
-        inline static std::uniform_int_distribution<uint64_t> rand_dist{ 1 };
-        inline static bool seeded { false };
-        static constexpr std::array<size_t, 4> dash_positions {8, 13, 18, 23};
-        static constexpr const char *const sep_char { "-" };
-	};
+    inline static uint64_t seed[2] { 0 };
+    inline static std::mt19937_64 rand_gen{ static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count()) };
+    inline static std::uniform_int_distribution<uint64_t> rand_dist{ 1 };
+    inline static bool seeded { false };
+    static constexpr std::array<size_t, 4> dash_positions {8, 13, 18, 23};
+    static constexpr const char *const sep_char { "-" };
+};
 
+}
 }
