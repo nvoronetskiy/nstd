@@ -105,25 +105,24 @@ public:
         return std::vector<uint8_t>{ s.bytes, s.bytes + 16 };
     }
 
-    static bool validate_uuid_string(const std::string &uuid_str)
+    static bool validate_uuid_string(const std::string &str, bool check_dashes = false)
     {
-        if (std::size(uuid_str) != 36) return false;
-        if (uuid_str[14] != '4') return false;
-        for (auto pos : dash_positions) if(uuid_str[pos] != *sep_char) return false;
-        for (auto it{ std::begin(uuid_str) }, end { std::end(uuid_str) }; it != end; ++it)
-        {
-            char ch { *it };
+        std::string uuid_str;
 
-            if (ch == '-') continue;
-            if (!std::isxdigit(ch)) return false;
-        }
+        std::copy_if(std::begin(str), std::end(str), std::back_inserter(uuid_str), [](auto &&i) { return std::isxdigit(i); });
+
+        if (std::size(uuid_str) != 32) return false;
+        if (uuid_str[12] != '4') return false;
+
+        if (check_dashes && std::any_of(std::begin(str), std::end(str), [](auto &&i) { return i == '-'; }))
+            for (auto pos : dash_positions) if(str[pos] != *sep_char) return false;
 
         return true;
     }
 
-    static uuid parse(const std::string &uuid_str)
+    static uuid parse(const std::string &uuid_str, bool strict = false)
     {
-        if (!validate_uuid_string(uuid_str)) return {};
+        if (!validate_uuid_string(uuid_str, strict)) return {};
 
         auto index {0};
         char bytes[3];
