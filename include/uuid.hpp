@@ -21,7 +21,9 @@ SOFTWARE.
 */
 
 #include <algorithm>
+#include <array>
 #include <cctype>
+#include <chrono>
 #include <iterator>
 #include <random>
 #include <string>
@@ -59,7 +61,7 @@ public:
         return std::all_of(std::begin(uuid_data), std::end(uuid_data), [](auto &&i) { return i == 0; });
     }
 
-    std::string to_string(bool use_uppercase = false)
+    std::string to_string(bool use_dashes = true, bool use_uppercase = false)
     {
         static const char *chars[16] { "0123456789abcdef", "0123456789ABCDEF" };
         std::string result;
@@ -74,7 +76,7 @@ public:
             inserter++ = chars[use_uppercase][n];
         }
 
-        for (auto pos : dash_positions) result.insert(pos, sep_char);
+        if (use_dashes) for (auto pos : dash_positions) result.insert(pos, sep_char);
 
         return result;
     }
@@ -84,7 +86,7 @@ public:
         return uuid_data;
     }
 
-    static uuid generate_v4()
+    static uuid generate_random()
     {
         while (!seeded)
         {
@@ -99,8 +101,8 @@ public:
         s.data[0] = xorshift128plus(seed);
         s.data[1] = xorshift128plus(seed);
 
-        s.bytes[6] = 0x4;
-        s.bytes[8] = (s.bytes[8] & 0x3) + 8;
+        s.bytes[6] = (s.bytes[6] & 0xf0) | 0x04;
+        s.bytes[8] = (s.bytes[8] & 0x30) + 8;
 
         return std::vector<uint8_t>{ s.bytes, s.bytes + 16 };
     }
