@@ -53,7 +53,7 @@ public:
 
     bool operator !=(const uuid &other) const
     {
-        return operator==(other);
+        return !(operator==(other));
     }
 
     bool is_null() const
@@ -107,17 +107,21 @@ public:
         return std::vector<uint8_t>{ s.bytes, s.bytes + 16 };
     }
 
-    static bool validate_uuid_string(const std::string &str, bool check_dashes = false)
+    static bool validate_uuid_string(const std::string &str, bool strict = false)
     {
         std::string uuid_str;
 
         std::copy_if(std::begin(str), std::end(str), std::back_inserter(uuid_str), [](auto &&i) { return std::isxdigit(i); });
 
         if (std::size(uuid_str) != 32) return false;
-        if (uuid_str[12] != '4') return false;
 
-        if (check_dashes && std::any_of(std::begin(str), std::end(str), [](auto &&i) { return i == '-'; }))
-            for (auto pos : dash_positions) if(str[pos] != *sep_char) return false;
+        if (strict)
+        {
+            if (uuid_str[12] != '4') return false;
+
+            if (std::any_of(std::begin(str), std::end(str), [](auto &&i) { return i == '-'; }))
+                for (auto pos : dash_positions) if(str[pos] != *sep_char) return false;
+        }
 
         return true;
     }

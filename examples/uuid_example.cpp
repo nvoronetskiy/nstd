@@ -39,7 +39,7 @@ int main()
 
     nstd::uuid::uuid null_uuid;
 
-    if (null_uuid == nstd::uuid::uuid::parse(std::string('0', 32)))
+    if (null_uuid.is_null() && null_uuid == nstd::uuid::uuid::parse(std::string('0', 32)))
         std::cout << "Default constructed uuid: " << null_uuid.to_string() << std::endl;
     else
     {
