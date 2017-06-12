@@ -257,7 +257,7 @@ public:
     signal &operator=(signal &&other) = default;
     virtual ~signal() override = default;
 
-    void emit(const Args &... args)
+    virtual void emit(const Args &... args)
     {
         if (!_enabled) return;
 
@@ -285,7 +285,7 @@ public:
         }), end);
     }
 
-    connection connect(std::function<void(Args...)> &&callable)
+    virtual connection connect(std::function<void(Args...)> &&callable)
     {
         slot<Args...> new_slot(std::forward<std::function<void(Args...)>>(callable));
         connection to_return(this, new_slot);
@@ -304,7 +304,7 @@ public:
         return connect([instance, member_function](Args... args) { (instance->*member_function)(args...); });
     }
 
-    void clear()
+    virtual void clear()
     {
         std::scoped_lock lock(_connect_lock, _emit_lock);
 
@@ -312,7 +312,7 @@ public:
         _slots.clear();
     }
 
-    size_t size() const
+    virtual size_t size() const
     {
         std::scoped_lock lock(_emit_lock);
 
