@@ -27,7 +27,6 @@ namespace nstd
 {
 namespace base64
 {
-
 inline constexpr uint8_t basis_64[] { "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/" };
 
 template<typename Container>
@@ -35,7 +34,7 @@ std::string base64_encode(const Container &data)
 {
     auto bytes_to_encode { reinterpret_cast<const uint8_t*>(std::data(data)) };
     auto len { std::size(data) };
-    std::vector<uint8_t> container((len + 2) / 3 * 4, 0);
+    std::string container((len + 2) / 3 * 4, '\0');
     auto result { std::data(container) };
     uint64_t idx { 0 }, i { 0 };
 
@@ -65,7 +64,7 @@ std::string base64_encode(const Container &data)
 		result[idx++] = '=';
 	}
 
-    return std::string(result, result + idx);
+    return container;
 }
 
 template<typename RetType = std::vector<uint8_t>>
@@ -95,28 +94,28 @@ RetType base64_decode(const std::string &encoded_string)
 	uint8_t pad = len > 0 && (len % 4 || p[len - 1] == '=');
 	const size_t L = ((len + 3) / 4 - pad) * 4;
 	RetType container(3 * ((len + 3) / 4), typename RetType::value_type());
+	auto result { std::data(container) };
 	int j = 0;
 
 	for (size_t i = 0; i < L; i += 4)
 	{
 		int n = base64_dtable[p[i]] << 18 | base64_dtable[p[i + 1]] << 12 | base64_dtable[p[i + 2]] << 6 | base64_dtable[p[i + 3]];
-		container[j++] = n >> 16;
-		container[j++] = n >> 8 & 0xFF;
-		container[j++] = n & 0xFF;
+		result[j++] = n >> 16;
+		result[j++] = n >> 8 & 0xFF;
+		result[j++] = n & 0xFF;
 	}
+
 	if (pad)
 	{
 		int n = base64_dtable[p[L]] << 18 | base64_dtable[p[L + 1]] << 12;
-		container[j++] = n >> 16;
+		result[j++] = n >> 16;
 
 		if (len > L + 2 && p[L + 2] != '=')
 		{
 			n |= base64_dtable[p[L + 2]] << 6;
-			container[j++] = n >> 8 & 0xFF;
+			result[j++] = n >> 8 & 0xFF;
 		}
 	}
-
-	container.resize(j);
 
 	return container;
 }
