@@ -18,15 +18,9 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
-This is the modified version of cpp-base64 by René Nyffenegger rene.nyffenegger@adp-gmbh.ch
-The original source code can be found here: https://github.com/ReneNyffenegger/cpp-base64
 */
 
-#include <cctype>
-#include <iterator>
 #include <string>
-#include <string_view>
 #include <vector>
 
 namespace nstd
@@ -34,102 +28,97 @@ namespace nstd
 namespace base64
 {
 
-inline const std::string_view base64_chars { "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/" };
+inline constexpr uint8_t basis_64[] { "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/" };
 
 template<typename Container>
 std::string base64_encode(const Container &data)
 {
-    const uint8_t* bytes_to_encode { reinterpret_cast<const uint8_t*>(std::data(data)) };
-    size_t in_len { std::size(data) };
-    int i { 0 }, j { 0 };
-    uint8_t char_array_3[3], char_array_4[4];
-    std::string container;
+    auto bytes_to_encode { reinterpret_cast<const uint8_t*>(std::data(data)) };
+    auto len { std::size(data) };
+    std::vector<uint8_t> container((len + 2) / 3 * 4, 0);
+    auto result { std::data(container) };
+    uint64_t idx { 0 }, i { 0 };
 
-    container.reserve(in_len * 2);
-
-    auto ret { std::back_inserter(container) };
-
-    while (in_len--)
+	for (; i < len - 2; i += 3)
     {
-        char_array_3[i++] = *(bytes_to_encode++);
+		result[idx++] = basis_64[ (bytes_to_encode[i] >> 2) & 0x3F];
+		result[idx++] = basis_64[((bytes_to_encode[i] & 0x3) << 4) | (int(bytes_to_encode[i + 1] & 0xF0) >> 4)];
+		result[idx++] = basis_64[((bytes_to_encode[i + 1] & 0xF) << 2) | (int(bytes_to_encode[i + 2] & 0xC0) >> 6)];
+		result[idx++] = basis_64[  bytes_to_encode[i + 2] & 0x3F];
+	}
 
-        if (i == 3)
+	if (i < len)
+    {
+		result[idx++] = basis_64[(bytes_to_encode[i] >> 2) & 0x3F];
+
+		if (i == (len - 1))
         {
-          char_array_4[0] = (char_array_3[0] & 0xfc) >> 2;
-          char_array_4[1] = ((char_array_3[0] & 0x03) << 4) + ((char_array_3[1] & 0xf0) >> 4);
-          char_array_4[2] = ((char_array_3[1] & 0x0f) << 2) + ((char_array_3[2] & 0xc0) >> 6);
-          char_array_4[3] = char_array_3[2] & 0x3f;
+			result[idx++] = basis_64[((bytes_to_encode[i] & 0x3) << 4)];
+			result[idx++] = '=';
+		}
+		else
+        {
+			result[idx++] = basis_64[((bytes_to_encode[i] & 0x3) << 4) | ((int)(bytes_to_encode[i + 1] & 0xF0) >> 4)];
+			result[idx++] = basis_64[((bytes_to_encode[i + 1] & 0xF) << 2)];
+		}
 
-          for(i = 0; (i <4) ; i++) ret = base64_chars[char_array_4[i]];
+		result[idx++] = '=';
+	}
 
-          i = 0;
-        }
-    }
-
-    if (i)
-    {
-        for(j = i; j < 3; j++) char_array_3[j] = '\0';
-
-        char_array_4[0] = ( char_array_3[0] & 0xfc) >> 2;
-        char_array_4[1] = ((char_array_3[0] & 0x03) << 4) + ((char_array_3[1] & 0xf0) >> 4);
-        char_array_4[2] = ((char_array_3[1] & 0x0f) << 2) + ((char_array_3[2] & 0xc0) >> 6);
-        char_array_4[3] =   char_array_3[2] & 0x3f;
-
-        for (j = 0; (j < i + 1); j++) ret = base64_chars[char_array_4[j]];
-
-        while((i++ < 3))
-          ret = '=';
-    }
-
-    return container;
+    return std::string(result, result + idx);
 }
 
 template<typename RetType = std::vector<uint8_t>>
 RetType base64_decode(const std::string &encoded_string)
 {
-    static auto is_base64 { [](uint8_t c) { return (std::isalnum(c) || (c == '+') || (c == '/')); } };
-
-    int in_len = std::size(encoded_string);
-    int i { 0 }, j { 0 }, in_ { 0 };
-    uint8_t char_array_4[4], char_array_3[3];
-    RetType container;
-
-    container.reserve(in_len);
-
-    auto ret { std::back_inserter(container) };
-
-    while (in_len-- && ( encoded_string[in_] != '=') && is_base64(encoded_string[in_]))
+    static constexpr const uint8_t base64_dtable[256]
     {
-        char_array_4[i++] = encoded_string[in_]; in_++;
+        0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80,
+        0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80,
+        0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 62  , 0x80, 62  , 0x80, 63  ,
+        52  , 53  , 54  , 55  , 56  , 57  , 58  , 59  , 60  , 61  , 0x80, 0x80, 0x80, 0x80, 0x80, 0x80,
+        0x80, 0   , 1   , 2   , 3   , 4   , 5   , 6   , 7   , 8   , 9   , 10  , 11  , 12  , 13  , 14  ,
+        15  , 16  , 17  , 18  , 19  , 20  , 21  , 22  , 23  , 24  , 25  , 0x80, 0x80, 0x80, 0x80, 63  ,
+        0x80, 26  , 27  , 28  , 29  , 30  , 31  , 32  , 33  , 34  , 35  , 36  , 37  , 38  , 39  , 40  ,
+        41  , 42  , 43  , 44  , 45  , 46  , 47  , 48  , 49  , 50  , 51  , 0x80, 0x80, 0x80, 0x80, 0x80,
+        0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80,
+        0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80,
+        0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80,
+        0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80,
+        0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80,
+        0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80,
+        0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80,
+        0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80
+    };
+    const uint8_t* p { reinterpret_cast<const uint8_t*>(std::data(encoded_string)) };
+    auto len { std::size(encoded_string) };
+	uint8_t pad = len > 0 && (len % 4 || p[len - 1] == '=');
+	const size_t L = ((len + 3) / 4 - pad) * 4;
+	RetType container(3 * ((len + 3) / 4), typename RetType::value_type());
+	int j = 0;
 
-        if (i ==4)
-        {
-          for (i = 0; i < 4; i++) char_array_4[i] = base64_chars.find(char_array_4[i]);
+	for (size_t i = 0; i < L; i += 4)
+	{
+		int n = base64_dtable[p[i]] << 18 | base64_dtable[p[i + 1]] << 12 | base64_dtable[p[i + 2]] << 6 | base64_dtable[p[i + 3]];
+		container[j++] = n >> 16;
+		container[j++] = n >> 8 & 0xFF;
+		container[j++] = n & 0xFF;
+	}
+	if (pad)
+	{
+		int n = base64_dtable[p[L]] << 18 | base64_dtable[p[L + 1]] << 12;
+		container[j++] = n >> 16;
 
-          char_array_3[0] = ( char_array_4[0] << 2       ) + ((char_array_4[1] & 0x30) >> 4);
-          char_array_3[1] = ((char_array_4[1] & 0xf) << 4) + ((char_array_4[2] & 0x3c) >> 2);
-          char_array_3[2] = ((char_array_4[2] & 0x3) << 6) +   char_array_4[3];
+		if (len > L + 2 && p[L + 2] != '=')
+		{
+			n |= base64_dtable[p[L + 2]] << 6;
+			container[j++] = n >> 8 & 0xFF;
+		}
+	}
 
-          for (i = 0; (i < 3); i++) ret = char_array_3[i];
+	container.resize(j);
 
-          i = 0;
-        }
-    }
-
-    if (i)
-    {
-        for (j = i; j <4; j++) char_array_4[j] = 0;
-
-        for (j = 0; j <4; j++) char_array_4[j] = base64_chars.find(char_array_4[j]);
-
-        char_array_3[0] = (char_array_4[0] << 2) + ((char_array_4[1] & 0x30) >> 4);
-        char_array_3[1] = ((char_array_4[1] & 0xf) << 4) + ((char_array_4[2] & 0x3c) >> 2);
-        char_array_3[2] = ((char_array_4[2] & 0x3) << 6) + char_array_4[3];
-
-        for (j = 0; (j < i - 1); j++) ret = char_array_3[j];
-    }
-
-    return container;
+	return container;
 }
 
 }
