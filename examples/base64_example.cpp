@@ -25,10 +25,21 @@ int main()
 {
     using namespace std::string_literals;
 
-    auto b64 { nstd::base64::base64_encode("Hello World!!!!!"s) };
+    auto b64 { nstd::base64::base64_encode("Hello World!"s) };
 
     std::cout << b64 << std::endl;
     std::cout << nstd::base64::base64_decode<std::string>(b64) << std::endl;
+
+    std::vector<uint8_t> data { 1, 2, 3, 4, 5, 6, 7, 8, 9, 0 };
+    auto b64_bin { nstd::base64::base64_encode(data) };
+
+    std::cout << b64_bin << std::endl;
+
+    auto data_restored { nstd::base64::base64_decode(b64_bin) };
+
+    std::cout << "Binary data: ";
+    for (auto &&i : data_restored) std::cout << std::to_string(i);
+    std::cout << std::endl << std::endl;
 
 	std::cout << "exitting..." << std::endl;
 

@@ -20,6 +20,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+#include <iterator>
 #include <string>
 #include <vector>
 
@@ -27,48 +28,54 @@ namespace nstd
 {
 namespace base64
 {
-inline constexpr uint8_t basis_64[] { "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/" };
 
-template<typename Container>
-std::string base64_encode(const Container &data)
+std::string base64_encode(const void *data, size_t length)
 {
-    auto bytes_to_encode { reinterpret_cast<const uint8_t*>(std::data(data)) };
-    auto len { std::size(data) };
-    std::string container((len + 2) / 3 * 4, '\0');
+    static constexpr const uint8_t basis_64[]
+    {
+        'A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z',
+        'a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z',
+        '0','1','2','3','4','5','6','7','8','9','+','/'
+    };
+    auto bytes_to_encode { reinterpret_cast<const uint8_t*>(data) };
+    std::string container((length + 2) / 3 * 4, '=');
     auto result { std::data(container) };
     uint64_t idx { 0 }, i { 0 };
 
-	for (; i < len - 2; i += 3)
+	for (; i < length - 2; i += 3)
     {
-		result[idx++] = basis_64[ (bytes_to_encode[i] >> 2) & 0x3F];
-		result[idx++] = basis_64[((bytes_to_encode[i] & 0x3) << 4) | (int(bytes_to_encode[i + 1] & 0xF0) >> 4)];
-		result[idx++] = basis_64[((bytes_to_encode[i + 1] & 0xF) << 2) | (int(bytes_to_encode[i + 2] & 0xC0) >> 6)];
-		result[idx++] = basis_64[  bytes_to_encode[i + 2] & 0x3F];
+		result[idx++] = basis_64[ (bytes_to_encode[i] >> 2) & 0x3f];
+		result[idx++] = basis_64[((bytes_to_encode[i] & 0x3) << 4) | (int(bytes_to_encode[i + 1] & 0xf0) >> 4)];
+		result[idx++] = basis_64[((bytes_to_encode[i + 1] & 0xf) << 2) | (int(bytes_to_encode[i + 2] & 0xc0) >> 6)];
+		result[idx++] = basis_64[  bytes_to_encode[i + 2] & 0x3f];
 	}
 
-	if (i < len)
+	if (i < length)
     {
-		result[idx++] = basis_64[(bytes_to_encode[i] >> 2) & 0x3F];
+		result[idx++] = basis_64[(bytes_to_encode[i] >> 2) & 0x3f];
 
-		if (i == (len - 1))
+		if (i == (length - 1))
         {
 			result[idx++] = basis_64[((bytes_to_encode[i] & 0x3) << 4)];
-			result[idx++] = '=';
 		}
 		else
         {
-			result[idx++] = basis_64[((bytes_to_encode[i] & 0x3) << 4) | ((int)(bytes_to_encode[i + 1] & 0xF0) >> 4)];
-			result[idx++] = basis_64[((bytes_to_encode[i + 1] & 0xF) << 2)];
+			result[idx++] = basis_64[((bytes_to_encode[i] & 0x3) << 4) | ((int)(bytes_to_encode[i + 1] & 0xf0) >> 4)];
+			result[idx++] = basis_64[((bytes_to_encode[i + 1] & 0xf) << 2)];
 		}
-
-		result[idx++] = '=';
 	}
 
     return container;
 }
 
-template<typename RetType = std::vector<uint8_t>>
-RetType base64_decode(const std::string &encoded_string)
+template<typename Container>
+std::string base64_encode(const Container &container)
+{
+    return base64_encode(std::data(container), std::size(container));
+}
+
+template<typename ResultContainerType = std::vector<uint8_t>>
+ResultContainerType base64_decode(const std::string &encoded_string)
 {
     static constexpr const uint8_t base64_dtable[256]
     {
@@ -89,33 +96,37 @@ RetType base64_decode(const std::string &encoded_string)
         0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80,
         0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80
     };
-    const uint8_t* p { reinterpret_cast<const uint8_t*>(std::data(encoded_string)) };
-    auto len { std::size(encoded_string) };
-	uint8_t pad = len > 0 && (len % 4 || p[len - 1] == '=');
-	const size_t L = ((len + 3) / 4 - pad) * 4;
-	RetType container(3 * ((len + 3) / 4), typename RetType::value_type());
+	auto idx { 0u };
+    auto encoded_bytes { reinterpret_cast<const uint8_t*>(std::data(encoded_string)) };
+    auto encoded_length { std::size(encoded_string) };
+	auto pad { encoded_length > 0 && (encoded_length % 4 || encoded_bytes[encoded_length - 1] == '=') };
+	const auto unpadded_lenth { ((encoded_length + 3) / 4 - pad) * 4 };
+	ResultContainerType container(3 * ((encoded_length + 3) / 4), typename ResultContainerType::value_type());
 	auto result { std::data(container) };
-	int j = 0;
 
-	for (size_t i = 0; i < L; i += 4)
+	for (size_t i { 0 }; i < unpadded_lenth; i += 4)
 	{
-		int n = base64_dtable[p[i]] << 18 | base64_dtable[p[i + 1]] << 12 | base64_dtable[p[i + 2]] << 6 | base64_dtable[p[i + 3]];
-		result[j++] = n >> 16;
-		result[j++] = n >> 8 & 0xFF;
-		result[j++] = n & 0xFF;
+		int n { base64_dtable[encoded_bytes[i]] << 18 | base64_dtable[encoded_bytes[i + 1]] << 12 | base64_dtable[encoded_bytes[i + 2]] << 6 | base64_dtable[encoded_bytes[i + 3]] };
+
+		result[idx++] = n >> 16;
+		result[idx++] = n >> 8 & 0xff;
+		result[idx++] = n & 0xff;
 	}
 
 	if (pad)
 	{
-		int n = base64_dtable[p[L]] << 18 | base64_dtable[p[L + 1]] << 12;
-		result[j++] = n >> 16;
+		int n { base64_dtable[encoded_bytes[unpadded_lenth]] << 18 | base64_dtable[encoded_bytes[unpadded_lenth + 1]] << 12 };
 
-		if (len > L + 2 && p[L + 2] != '=')
+		result[idx++] = n >> 16;
+
+		if (encoded_length > unpadded_lenth + 2 && encoded_bytes[unpadded_lenth + 2] != '=')
 		{
-			n |= base64_dtable[p[L + 2]] << 6;
-			result[j++] = n >> 8 & 0xFF;
+			n |= base64_dtable[encoded_bytes[unpadded_lenth + 2]] << 6;
+			result[idx++] = n >> 8 & 0xff;
 		}
 	}
+
+	if (idx < std::size(container)) container.resize(idx);
 
 	return container;
 }
