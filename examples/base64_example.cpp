@@ -38,7 +38,7 @@ int main()
     auto data_restored { nstd::base64::base64_decode(b64_bin) };
 
     std::cout << "Binary data: ";
-    for (auto &&i : data_restored) std::cout << std::to_string(i);
+    for (auto &&i : data_restored) std::cout << static_cast<int>(i);
     std::cout << std::endl << std::endl;
 
 	std::cout << "exitting..." << std::endl;
