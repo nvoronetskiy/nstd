@@ -35,6 +35,8 @@ SOFTWARE.
 #include <unordered_map>
 #include <unordered_set>
 
+#include <iostream>
+
 namespace nstd
 {
 namespace relinx
@@ -2854,17 +2856,43 @@ protected:
 };
 
 template<typename Container>
-auto from(Container &&c) -> decltype(auto)
+auto from(const Container &c) -> decltype(auto)
 {
     using next_relinx_type = relinx_object<void, typename std::decay<decltype(std::begin(c))>::type>;
 
     return std::make_shared<next_relinx_type>(std::shared_ptr<void>(nullptr), std::begin(c), std::end(c));
 }
 
+template<typename Container>
+auto from(Container &c) -> decltype(auto)
+{
+    const Container &const_alias { c };
+
+    return from<Container>(const_alias);
+}
+
+template<typename Container>
+auto from(Container &&c) -> decltype(auto)
+{
+    using next_relinx_type = relinx_object<void, typename std::decay<decltype(std::begin(c))>::type, typename std::decay<decltype(c)>::type>;
+
+    return std::make_shared<next_relinx_type>(std::shared_ptr<void>(nullptr), std::forward<typename std::decay<decltype(c)>::type>(c));
+}
+
+template <typename T>
+auto from(const std::initializer_list<T> &i) -> decltype(auto)
+{
+    return from<std::initializer_list<T>>(i);
+}
+
 template <typename T>
 auto from(std::initializer_list<T> &&i) -> decltype(auto)
 {
-    return from<std::initializer_list<T>>(std::forward<std::initializer_list<T>>(i));
+    default_container<T> result(std::size(i));
+
+    std::move(std::begin(i), std::end(i), std::begin(result));
+
+    return from<default_container<T>>(std::move(result));
 }
 
 template <typename Iterator>
