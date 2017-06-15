@@ -61,7 +61,7 @@ public:
         return std::all_of(std::begin(uuid_data), std::end(uuid_data), [](auto &&i) { return i == 0; });
     }
 
-    std::string to_string(bool use_dashes = true, bool use_uppercase = false)
+    std::string to_string(bool use_dashes = true, bool use_uppercase = false) const
     {
         static const char *chars[16] { "0123456789abcdef", "0123456789ABCDEF" };
         std::string result;
@@ -146,6 +146,11 @@ public:
         }
 
         return std::vector<uint8_t>{uuid_bytes, uuid_bytes + 16};
+    }
+
+    static uint64_t get_random_number()
+    {
+        return rand_dist(rand_gen);
     }
 
 private:
