@@ -295,7 +295,7 @@ public:
         return *_begin;
     }
 
-    auto operator->() -> const value_type
+    auto operator->() const -> const value_type
     {
         return *(*this);
     }
