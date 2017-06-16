@@ -20,12 +20,13 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#define ASIO_STANDALONE
-#define ASIO_HAS_STD_CHRONO
-//#define ASIO_NO_DEPRECATED
-#include "external/asio/asio/include/asio.hpp"
+#define URDL_HEADER_ONLY
+#define URDL_DISABLE_SSL
 
-namespace nstd
-{
-namespace asio = asio;
-}
+#include "asio.hpp"
+#include "external/urdl/http.hpp"
+#include "external/urdl/istream.hpp"
+#include "external/urdl/istreambuf.hpp"
+#include "external/urdl/option_set.hpp"
+#include "external/urdl/read_stream.hpp"
+#include "external/urdl/url.hpp"

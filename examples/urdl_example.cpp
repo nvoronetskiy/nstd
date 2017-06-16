@@ -1,5 +1,3 @@
-#pragma once
-
 /*
 MIT License
 Copyright (c) 2017 Arlen Keshabyan (arlen.albert@gmail.com)
@@ -20,12 +18,10 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#define ASIO_STANDALONE
-#define ASIO_HAS_STD_CHRONO
-//#define ASIO_NO_DEPRECATED
-#include "external/asio/asio/include/asio.hpp"
+#include <iostream>
+#include "urdl.hpp"
 
-namespace nstd
+int main()
 {
-namespace asio = asio;
+    return 0;
 }
