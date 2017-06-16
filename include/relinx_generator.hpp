@@ -54,7 +54,7 @@ public:
         return !(*this == s);
     }
 
-    auto operator*() -> const value_type&
+    auto operator*() const -> const value_type&
     {
         return _uuid;
     }
@@ -111,7 +111,7 @@ public:
         return !(*this == s);
     }
 
-    auto operator*() -> const value_type&
+    auto operator*() const -> const value_type&
     {
         return _result;
     }
