@@ -22,13 +22,66 @@ SOFTWARE.
 #include <vector>
 #include "asio.hpp"
 #include "json.hpp"
+#include "relinx.hpp"
 
 int main()
 {
-    using namespace std::literals;
+    asio::ip::tcp::iostream s;
 
-    nstd::asio::io_context io;
-    nstd::asio::ip::tcp::socket socket{ io };
+    s.expires_after(std::chrono::seconds(60));
+
+    s.connect("qrng.anu.edu.au", "http");
+    if (!s)
+    {
+      std::cout << "Unable to connect: " << s.error().message() << "\n";
+      return 1;
+    }
+
+    s << "GET /API/jsonI.php?length=1024&type=uint8 HTTP/1.0\r\n";
+    s << "Host: qrng.anu.edu.au\r\n";
+    s << "Accept: application/json\r\n";
+    s << "Connection: close\r\n\r\n";
+
+    std::string http_version;
+    s >> http_version;
+    unsigned int status_code;
+    s >> status_code;
+    std::string status_message;
+    std::getline(s, status_message);
+    if (!s || http_version.substr(0, 5) != "HTTP/")
+    {
+      std::cout << "Invalid response\n";
+      return 1;
+    }
+    if (status_code != 200)
+    {
+      std::cout << "Response returned with status code " << status_code << "\n";
+      return 1;
+    }
+
+    std::string header;
+    while (std::getline(s, header) && header != "\r")
+      std::cout << header << "\n";
+    std::cout << "\n";
+
+
+    std::ostringstream json_str_stream;
+    json_str_stream << s.rdbuf();
+
+    auto json_str { json_str_stream.str() };
+
+    auto json { nstd::json::json::parse(json_str) };
+
+    bool success { json[0]["success"] };
+
+    if (success)
+    {
+        auto data { nstd::relinx::from(json[0]["data"])->select([](auto &&v){ return static_cast<int>(v); })->to_vector() };
+
+        nstd::relinx::from(data)->for_each([](auto &&v) { std::cout << "/" << v; });
+
+        std::cout << std::endl;
+    }
 
 	std::cout << "exitting..." << std::endl;
 

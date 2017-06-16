@@ -19,9 +19,35 @@ SOFTWARE.
 */
 
 #include <iostream>
+#include <string_view>
+#include <sstream>
 #include "urdl.hpp"
 
 int main()
 {
+    nstd::asio::io_context io_service;
+
+    nstd::urdl::read_stream stream(io_service);
+
+    stream.open("http://qrng.anu.edu.au/API/jsonI.php?length=1024&type=uint8");
+
+    std::ostringstream oss;
+
+    while (true)
+    {
+      char data[1024];
+      asio::error_code ec;
+      std::size_t length { stream.read_some(nstd::asio::buffer(data), ec) };
+
+      if (ec == nstd::asio::error::eof) break;
+
+      if (ec) throw std::system_error(ec);
+
+      oss << std::string_view(data, length);
+    }
+
+    std::cout << stream.headers() << std::endl;
+    std::cout << "JSON data: [" << oss.str() << "]";
+
     return 0;
 }

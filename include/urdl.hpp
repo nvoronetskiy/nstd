@@ -30,3 +30,8 @@ SOFTWARE.
 #include "external/urdl/option_set.hpp"
 #include "external/urdl/read_stream.hpp"
 #include "external/urdl/url.hpp"
+
+namespace nstd
+{
+    namespace urdl = urdl;
+}
