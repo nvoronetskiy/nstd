@@ -22,8 +22,10 @@ SOFTWARE.
 
 #define URDL_HEADER_ONLY
 #define URDL_DISABLE_SSL
+#define ASIO_STANDALONE
+#define ASIO_HAS_STD_CHRONO
 
-#include "asio.hpp"
+#include "external/asio/asio/include/asio.hpp"
 #include "external/urdl/http.hpp"
 #include "external/urdl/istream.hpp"
 #include "external/urdl/istreambuf.hpp"
@@ -33,5 +35,6 @@ SOFTWARE.
 
 namespace nstd
 {
+    namespace asio = asio;
     namespace urdl = urdl;
 }

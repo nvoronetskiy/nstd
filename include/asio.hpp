@@ -22,7 +22,8 @@ SOFTWARE.
 
 #define ASIO_STANDALONE
 #define ASIO_HAS_STD_CHRONO
-//#define ASIO_NO_DEPRECATED
+#define ASIO_NO_DEPRECATED
+
 #include "external/asio/asio/include/asio.hpp"
 
 namespace nstd

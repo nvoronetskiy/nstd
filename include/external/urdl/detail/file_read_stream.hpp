@@ -81,8 +81,8 @@ public:
       return 0;
     }
 
-    typename MutableBufferSequence::const_iterator iter = buffers.begin();
-    typename MutableBufferSequence::const_iterator end = buffers.end();
+    typename MutableBufferSequence::const_iterator iter = std::begin(buffers);
+    typename MutableBufferSequence::const_iterator end = std::end(buffers);
     for (; iter != end; ++iter)
     {
       asio::mutable_buffer buffer(*iter);
