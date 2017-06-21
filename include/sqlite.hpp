@@ -27,6 +27,7 @@ extern "C"
 
 #define MODERN_SQLITE_STD_OPTIONAL_SUPPORT
 #include "external/sqlite_modern_cpp/sqlite_modern_cpp.h"
+#include <tuple>
 #include <vector>
 
 namespace nstd
@@ -49,15 +50,46 @@ private:
     bool _rollback { false };
 };
 
-template<typename Target, typename... AttrTypes>
-struct result_builder
+template<typename Target, typename... ColTypes>
+struct records
 {
-    std::vector<Target> data;
+    using data_container_type = std::vector<Target>;
+    data_container_type records;
 
-    void operator()(AttrTypes... args)
+    records() = default;
+    records(std::size_t preallocate) { records.reserve(preallocate); }
+    ~records() = default;
+
+    void operator()(ColTypes... args)
     {
-        data.emplace_back(std::forward<AttrTypes&&>(args)...);
+        records.emplace_back(std::forward<ColTypes&&>(args)...);
     };
+
+    data_container_type &data()
+    {
+        return records;
+    }
+};
+
+template<typename... ColTypes>
+struct tuple_records
+{
+    using data_container_type = std::vector<std::tuple<ColTypes...>>;
+    data_container_type records;
+
+    tuple_records() = default;
+    tuple_records(std::size_t preallocate) { records.reserve(preallocate); }
+    ~tuple_records() = default;
+
+    void operator()(ColTypes... args)
+    {
+        records.emplace_back(std::forward<ColTypes&&>(args)...);
+    };
+
+    data_container_type &data()
+    {
+        return records;
+    }
 };
 
 }

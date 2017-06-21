@@ -44,13 +44,13 @@ int main()
         });
     }
 
-    using example_row = nstd::db::result_builder<std::tuple<int, std::string, std::string>, int, std::string, std::string>;
+    using example_rows = nstd::db::tuple_records<int, std::string, std::string>;
 
-    example_row records;
+    example_rows records { 50 };
 
     db << "select id, name, password from example where id between 30 and 80" >> records;
 
-    nstd::relinx::from(records.data)->for_each([](auto &&row)
+    nstd::relinx::from(std::data(records))->for_each([](auto &&row)
     {
         auto &[id, name, password] = row;
 
