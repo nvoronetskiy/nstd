@@ -21,6 +21,7 @@ SOFTWARE.
 */
 
 #include <algorithm>
+#include <array>
 #include <iterator>
 #include <mutex>
 #include "urdl.hpp"
@@ -37,56 +38,57 @@ public:
     {
         std::scoped_lock lock{ _mutex };
 
-        if (std::size(_quantum_data) < _cache_size)
-        {
-            _quantum_data.resize(_cache_size);
-            preload_quantum_data();
-        }
+        preload_quantum_data();
     }
 
     auto operator ()() -> decltype(auto)
     {
         std::scoped_lock lock{ _mutex };
 
-        auto const data_begin { std::data(_quantum_data) };
+        auto data_begin { std::data(_quantum_data) };
 
-        if (data_begin == nullptr) _quantum_data.resize(_cache_size);
-
-        if (_current_ptr - data_begin + sizeof(T) >= 1024)
+        if (_cursor + sizeof(T) >= _cache_size)
         {
             preload_quantum_data();
         }
 
-        T result { *reinterpret_cast<T*>(_current_ptr) };
+        T result { *reinterpret_cast<T*>(data_begin + _cursor) };
 
-        _current_ptr += sizeof(T);
+        _cursor += sizeof(T);
 
         return result;
     }
 
 private:
     inline static constexpr const std::size_t _cache_size { 1024 };
-    inline static std::vector<uint8_t> _quantum_data;
-    inline static uint8_t *_current_ptr = nullptr;
+    inline static std::array<uint8_t, _cache_size> _quantum_data;
+    inline static std::size_t _cursor { 0 };
     inline static std::mutex _mutex;
     inline static constexpr const char *_url { "http://qrng.anu.edu.au/API/jsonI.php?type=uint8&length=" };
 
     void preload_quantum_data()
     {
-        auto const data_begin { std::data(_quantum_data) };
-        auto const length_to_download { _current_ptr == nullptr ? _cache_size : _current_ptr - data_begin };
+        auto const length_to_download { _cache_size - (_cache_size - (!_cursor ? _cache_size : _cursor)) };
         auto const length_to_move { _cache_size - length_to_download };
         auto url { std::string(_url) + std::to_string(length_to_download) };
         auto json_str { nstd::download_url(url).second };
         auto json { nstd::json::json::parse(json_str) };
+
+        if (!json[0]["success"])
+        {
+            using namespace std::string_literals;
+
+            throw std::runtime_error("Request for quantum random numbers failed! URL is '"s + url + "'");
+        }
+
         auto &json_random_data { json[0]["data"] };
+        auto data_begin { std::data(_quantum_data) };
 
-        std::move(_current_ptr, _current_ptr + length_to_move, data_begin);
+        if (length_to_move) std::move(data_begin + _cursor, data_begin + _cache_size, data_begin);
 
-        _current_ptr = data_begin;
-        _current_ptr += length_to_move;
+        _cursor = 0;
 
-        std::transform(std::begin(json_random_data), std::end(json_random_data), _current_ptr, [](auto &&v) { return static_cast<uint8_t>(v); });
+        std::transform(std::begin(json_random_data), std::end(json_random_data), data_begin + length_to_move, [](auto &&v) { return static_cast<uint8_t>(v); });
     }
 };
 
