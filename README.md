@@ -7,6 +7,9 @@ The library currently contains the following features:
    * expiry_cache  - a container where a data can expire.
    * json - Niels Lohmann's json library
    * asio - boost's networking library, but no dependancy on boost
+   * urdl - the library to download web content (depends on asio)
    * base64 - base64 encoding/decoding
    * uuid - unique id generator
    * relinx - LINQ-like data transformations
+   * sqlite3/sqlite c++ wrapper - sql database support
+   * quantum random number provider (using internet service)
