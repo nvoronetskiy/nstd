@@ -19,7 +19,9 @@ SOFTWARE.
 */
 
 #include <iostream>
-#include "relinx_generator.hpp"
+#include "relinx_generator_uuid.hpp"
+#include "relinx_generator_random.hpp"
+#include "quantum_random_provider.hpp"
 
 int main()
 {

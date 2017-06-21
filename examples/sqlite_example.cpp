@@ -19,11 +19,14 @@ SOFTWARE.
 */
 
 #include <iostream>
+#include <optional>
 #include <string>
 #include <tuple>
 #include "default_random_provider.hpp"
 #include "relinx.hpp"
+#include "relinx_generator_uuid.hpp"
 #include "sqlite.hpp"
+#include "json.hpp"
 
 int main()
 {
@@ -59,6 +62,38 @@ int main()
     db << "select name, password from example order by name desc limit 20" >> [](std::string name, std::string password)
     {
         std::cout << "name: " << name << ";\tpassword: " << password << std::endl;
+    };
+
+    db << "drop table example";
+    db << "create table example(id text primary key, name text, password text, json_data text)";
+
+    {
+        nstd::db::scoped_transaction tr(db, true);
+
+        nstd::from_uuid()->take(100)->for_each([&db](auto &&uuid)
+        {
+            auto uuid_str { uuid.to_string() };
+            auto name { std::to_string(nstd::default_random_provider<>()()) };
+            auto password { std::to_string(nstd::default_random_provider<>()()) };
+            nstd::json::json json_data;
+            std::optional<std::string> json_data_str;
+
+            if (nstd::default_random_provider<>()() & 1)
+            {
+                json_data["id"] = uuid_str;
+                json_data["name"] = name;
+                json_data["password"] = password;
+
+                json_data_str = json_data.dump();
+            }
+
+            db << "insert into example(id, name, password, json_data) values (?, ?, ?, ?)" << uuid_str << name << password << json_data_str;
+        });
+    }
+
+    db << "select json_data from example order by name desc limit 20" >> [](std::optional<std::string> json_data)
+    {
+        std::cout << "json_data: " << json_data.value_or("null") << std::endl;
     };
 
     std::cout << "exiting..." << std::endl;
