@@ -5,11 +5,11 @@ The library currently contains the following features:
    * signal_slot    - a signal/slot implementation that is thread safe and supports auto-disconnection from slots.
    * live_property - a templated wrapper class that emits signals when a value is changing/changed.
    * expiry_cache  - a container where a data can expire.
-   * json - Niels Lohmann's json library
-   * asio - boost's networking library, but no dependancy on boost
-   * urdl - the library to download web content (depends on asio)
+   * json - Niels Lohmann's json library [https://github.com/nlohmann/json]
+   * asio - boost's networking library, but no dependancy on boost [http://think-async.com/]
+   * urdl - the library to download web content (depends on asio) [https://github.com/chriskohlhoff/urdl]
    * base64 - base64 encoding/decoding
    * uuid - unique id generator
    * relinx - LINQ-like data transformations
-   * sqlite3/sqlite c++ wrapper - sql database support
-   * quantum random number provider (using internet service)
+   * sqlite3/sqlite c++ wrapper - sql database support [https://github.com/aminroosta/sqlite_modern_cpp]
+   * quantum random number provider (using QRNG internet service: http://qrng.anu.edu.au)
