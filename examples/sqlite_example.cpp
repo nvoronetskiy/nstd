@@ -29,8 +29,7 @@ int main()
 {
     nstd::sqlite::database db{ ":memory:" };
 
-    db << "create table if not exists example(id int primary key, name text, password text)";
-    db << "delete from example";
+    db << "create table example(id int primary key, name text, password text)";
 
     {
         nstd::db::scoped_transaction tr(db);
