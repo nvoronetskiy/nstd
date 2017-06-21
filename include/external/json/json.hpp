@@ -465,6 +465,39 @@ using enable_if_t = typename std::enable_if<B, T>::type;
 template<typename T>
 using uncvref_t = typename std::remove_cv<typename std::remove_reference<T>::type>::type;
 
+// implementation of C++14 index_sequence and affiliates
+// source: https://stackoverflow.com/a/32223343
+template <std::size_t... Ints>
+struct index_sequence
+{
+    using type = index_sequence;
+    using value_type = std::size_t;
+    static constexpr std::size_t size() noexcept
+    {
+        return sizeof...(Ints);
+    }
+};
+
+template <class Sequence1, class Sequence2>
+struct merge_and_renumber;
+
+template <std::size_t... I1, std::size_t... I2>
+struct merge_and_renumber<index_sequence<I1...>, index_sequence<I2...>>
+        : index_sequence < I1..., (sizeof...(I1) + I2)... >
+          { };
+
+template <std::size_t N>
+struct make_index_sequence
+    : merge_and_renumber < typename make_index_sequence < N / 2 >::type,
+      typename make_index_sequence < N - N / 2 >::type >
+{ };
+
+template<> struct make_index_sequence<0> : index_sequence<> { };
+template<> struct make_index_sequence<1> : index_sequence<0> { };
+
+template<typename... Ts>
+using index_sequence_for = make_index_sequence<sizeof...(Ts)>;
+
 /*
 Implementation of two C++17 constructs: conjunction, negation. This is needed
 to avoid evaluating all the traits in a condition
@@ -866,12 +899,22 @@ void to_json(BasicJsonType& j, T (&arr)[N])
     external_constructor<value_t::array>::construct(j, arr);
 }
 
-template <typename BasicJsonType, typename CompatibleString, typename T,
-          enable_if_t<std::is_constructible<typename BasicJsonType::string_t,
-                      CompatibleString>::value, int> = 0>
-void to_json(BasicJsonType& j, std::pair<CompatibleString, T> const& p)
+template <typename BasicJsonType, typename... Args>
+void to_json(BasicJsonType& j, const std::pair<Args...>& p)
 {
-    j[p.first] = p.second;
+    j = {p.first, p.second};
+}
+
+template <typename BasicJsonType, typename Tuple, std::size_t... Idx>
+void to_json_tuple_impl(BasicJsonType& j, const Tuple& t, index_sequence<Idx...>)
+{
+    j = {std::get<Idx>(t)...};
+}
+
+template <typename BasicJsonType, typename... Args>
+void to_json(BasicJsonType& j, const std::tuple<Args...>& t)
+{
+    to_json_tuple_impl(j, t, index_sequence_for<Args...> {});
 }
 
 ///////////////
@@ -1020,6 +1063,15 @@ auto from_json_array_impl(const BasicJsonType& j, CompatibleArrayType& arr, prio
     });
 }
 
+template <typename BasicJsonType, typename T, std::size_t N>
+void from_json_array_impl(const BasicJsonType& j, std::array<T, N>& arr, priority_tag<2>)
+{
+    for (std::size_t i = 0; i < N; ++i)
+    {
+        arr[i] = j.at(i).template get<T>();
+    }
+}
+
 template<typename BasicJsonType, typename CompatibleArrayType,
          enable_if_t<is_compatible_array_type<BasicJsonType, CompatibleArrayType>::value and
                      std::is_convertible<BasicJsonType, typename CompatibleArrayType::value_type>::value and
@@ -1031,7 +1083,7 @@ void from_json(const BasicJsonType& j, CompatibleArrayType& arr)
         JSON_THROW(type_error::create(302, "type must be array, but is " + j.type_name()));
     }
 
-    from_json_array_impl(j, arr, priority_tag<1> {});
+    from_json_array_impl(j, arr, priority_tag<2> {});
 }
 
 template<typename BasicJsonType, typename CompatibleObjectType,
@@ -1047,23 +1099,16 @@ void from_json(const BasicJsonType& j, CompatibleObjectType& obj)
     using std::begin;
     using std::end;
     using value_type = typename CompatibleObjectType::value_type;
-    std::vector<value_type> v;
-    v.reserve(j.size());
     std::transform(
-        inner_object->begin(), inner_object->end(), std::back_inserter(v),
+        inner_object->begin(), inner_object->end(),
+        std::inserter(obj, obj.begin()),
         [](typename BasicJsonType::object_t::value_type const & p)
     {
-        return value_type
-        {
-            p.first,
-            p.second
-            .template get<typename CompatibleObjectType::mapped_type>()};
+        return value_type(
+                   p.first,
+                   p.second
+                   .template get<typename CompatibleObjectType::mapped_type>());
     });
-    // we could avoid the assignment, but this might require a for loop, which
-    // might be less efficient than the container constructor for some
-    // containers (would it?)
-    obj = CompatibleObjectType(std::make_move_iterator(begin(v)),
-                               std::make_move_iterator(end(v)));
 }
 
 // overload for arithmetic types, not chosen for basic_json template arguments
@@ -1109,25 +1154,22 @@ void from_json(const BasicJsonType& j, ArithmeticType& val)
     }
 }
 
-template <typename BasicJsonType, typename CompatibleString, typename T,
-          enable_if_t<std::is_constructible<typename BasicJsonType::string_t,
-                      CompatibleString>::value, int> = 0>
-void from_json(const BasicJsonType& j, std::pair<CompatibleString, T>& p)
+template <typename BasicJsonType, typename... Args>
+void from_json(const BasicJsonType& j, std::pair<Args...>& p)
 {
-    if (not j.is_object())
-    {
-        JSON_THROW(type_error::create(302, "type must be object, but is " + j.type_name()));
-    }
+    p = {j.at(0), j.at(1)};
+}
 
-    auto const inner_object = j.template get_ptr<const typename BasicJsonType::object_t*>();
-    auto const size = inner_object->size();
-    if (size != 1)
-    {
-        JSON_THROW(other_error::create(502, "conversion to std::pair requires the object to have exactly one field, but it has " + std::to_string(size)));
-    }
-    auto const& obj = *inner_object->begin();
-    // cannot use *inner_object, need to convert both members
-    p = std::make_pair(obj.first, obj.second.template get<T>());
+template <typename BasicJsonType, typename Tuple, std::size_t... Idx>
+void from_json_tuple_impl(const BasicJsonType& j, Tuple& t, index_sequence<Idx...>)
+{
+    t = std::make_tuple(j.at(Idx)...);
+}
+
+template <typename BasicJsonType, typename... Args>
+void from_json(const BasicJsonType& j, std::tuple<Args...>& t)
+{
+    from_json_tuple_impl(j, t, index_sequence_for<Args...> {});
 }
 
 struct to_json_fn
@@ -6765,10 +6807,6 @@ class basic_json
     */
     class serializer
     {
-      private:
-        serializer(const serializer&) = delete;
-        serializer& operator=(const serializer&) = delete;
-
       public:
         /*!
         @param[in] s  output stream to serialize to
@@ -6780,6 +6818,10 @@ class basic_json
               decimal_point(!loc->decimal_point ? '\0' : loc->decimal_point[0]),
               indent_char(ichar), indent_string(512, indent_char)
         {}
+
+        // delete because of pointer members
+        serializer(const serializer&) = delete;
+        serializer& operator=(const serializer&) = delete;
 
         /*!
         @brief internal implementation of the serialization function
@@ -7457,6 +7499,13 @@ class basic_json
         return parse(std::begin(array), std::end(array), cb);
     }
 
+    template<class T, std::size_t N>
+    static bool accept(T (&array)[N])
+    {
+        // delegate the call to the iterator-range accept overload
+        return accept(std::begin(array), std::end(array));
+    }
+
     /*!
     @brief deserialize from string literal
 
@@ -7498,6 +7547,15 @@ class basic_json
         return parser(input_adapter::create(s), cb).parse(true);
     }
 
+    template<typename CharT, typename std::enable_if<
+                 std::is_pointer<CharT>::value and
+                 std::is_integral<typename std::remove_pointer<CharT>::type>::value and
+                 sizeof(typename std::remove_pointer<CharT>::type) == 1, int>::type = 0>
+    static bool accept(const CharT s)
+    {
+        return parser(input_adapter::create(s)).accept(true);
+    }
+
     /*!
     @brief deserialize from stream
 
@@ -7533,6 +7591,11 @@ class basic_json
         return parser(input_adapter::create(i), cb).parse(true);
     }
 
+    static bool accept(std::istream& i)
+    {
+        return parser(input_adapter::create(i)).accept(true);
+    }
+
     /*!
     @copydoc parse(std::istream&, const parser_callback_t)
     */
@@ -7540,6 +7603,11 @@ class basic_json
                             const parser_callback_t cb = nullptr)
     {
         return parser(input_adapter::create(i), cb).parse(true);
+    }
+
+    static bool accept(std::istream&& i)
+    {
+        return parser(input_adapter::create(i)).accept(true);
     }
 
     /*!
@@ -7597,6 +7665,15 @@ class basic_json
         return parser(input_adapter::create(first, last), cb).parse(true);
     }
 
+    template<class IteratorType, typename std::enable_if<
+                 std::is_base_of<
+                     std::random_access_iterator_tag,
+                     typename std::iterator_traits<IteratorType>::iterator_category>::value, int>::type = 0>
+    static bool accept(IteratorType first, IteratorType last)
+    {
+        return parser(input_adapter::create(first, last)).accept(true);
+    }
+
     /*!
     @brief deserialize from a container with contiguous storage
 
@@ -7652,6 +7729,18 @@ class basic_json
     {
         // delegate the call to the iterator-range parse overload
         return parse(std::begin(c), std::end(c), cb);
+    }
+
+    template<class ContiguousContainer, typename std::enable_if<
+                 not std::is_pointer<ContiguousContainer>::value and
+                 std::is_base_of<
+                     std::random_access_iterator_tag,
+                     typename std::iterator_traits<decltype(std::begin(std::declval<ContiguousContainer const>()))>::iterator_category>::value
+                 , int>::type = 0>
+    static bool accept(const ContiguousContainer& c)
+    {
+        // delegate the call to the iterator-range accept overload
+        return accept(std::begin(c), std::end(c));
     }
 
     /*!
@@ -8750,15 +8839,15 @@ class basic_json
         // native support
 
         /// input adapter for input stream
-        static std::shared_ptr<input_adapter> create(std::istream& i, const size_t buffer_size = 16384)
+        static std::shared_ptr<input_adapter> create(std::istream& i)
         {
-            return std::shared_ptr<input_adapter>(new cached_input_stream_adapter(i, buffer_size));
+            return std::shared_ptr<input_adapter>(new cached_input_stream_adapter<16384>(i));
         }
 
         /// input adapter for input stream
-        static std::shared_ptr<input_adapter> create(std::istream&& i, const size_t buffer_size = 16384)
+        static std::shared_ptr<input_adapter> create(std::istream&& i)
         {
-            return std::shared_ptr<input_adapter>(new cached_input_stream_adapter(i, buffer_size));
+            return std::shared_ptr<input_adapter>(new cached_input_stream_adapter<16384>(i));
         }
 
         /// input adapter for buffer
@@ -8830,11 +8919,12 @@ class basic_json
     using input_adapter_t = std::shared_ptr<input_adapter>;
 
     /// input adapter for cached stream input
+    template<std::size_t N>
     class cached_input_stream_adapter : public input_adapter
     {
       public:
-        cached_input_stream_adapter(std::istream& i, const size_t buffer_size)
-            : is(i), start_position(is.tellg()), buffer(buffer_size, '\0')
+        cached_input_stream_adapter(std::istream& i)
+            : is(i), start_position(is.tellg())
         {
             // immediately abort if stream is erroneous
             if (JSON_UNLIKELY(i.fail()))
@@ -8842,10 +8932,7 @@ class basic_json
                 JSON_THROW(parse_error::create(111, 0, "bad input stream"));
             }
 
-            // initial fill
-            is.read(buffer.data(), static_cast<std::streamsize>(buffer.size()));
-            // store number of bytes in the buffer
-            fill_size = static_cast<size_t>(is.gcount());
+            fill_buffer();
 
             // skip byte order mark
             if (fill_size >= 3 and buffer[0] == '\xEF' and buffer[1] == '\xBB' and buffer[2] == '\xBF')
@@ -8862,7 +8949,8 @@ class basic_json
             // We initially read a lot of characters into the buffer, and we
             // may not have processed all of them. Therefore, we need to
             // "rewind" the stream after the last processed char.
-            is.seekg(start_position + static_cast<std::streamoff>(processed_chars));
+            is.seekg(start_position);
+            is.ignore(static_cast<std::streamsize>(processed_chars));
             // clear stream flags
             is.clear();
         }
@@ -8872,24 +8960,22 @@ class basic_json
             // check if refilling is necessary and possible
             if (buffer_pos == fill_size and not eof)
             {
-                // refill
-                is.read(buffer.data(), static_cast<std::streamsize>(buffer.size()));
-                // store number of bytes in the buffer
-                fill_size = static_cast<size_t>(is.gcount());
+                fill_buffer();
 
-                // the buffer is ready
-                buffer_pos = 0;
-
-                // remember that filling did not yield new input
+                // check and remember that filling did not yield new input
                 if (fill_size == 0)
                 {
                     eof = true;
                     return std::char_traits<char>::eof();
                 }
+
+                // the buffer is ready
+                buffer_pos = 0;
             }
 
             ++processed_chars;
-            return buffer[buffer_pos++] & 0xFF;;
+            assert(buffer_pos < buffer.size());
+            return buffer[buffer_pos++] & 0xFF;
         }
 
         std::string read(size_t offset, size_t length) override
@@ -8898,9 +8984,9 @@ class basic_json
             std::string result(length, '\0');
 
             // save stream position
-            auto current_pos = is.tellg();
+            const auto current_pos = is.tellg();
             // save stream flags
-            auto flags = is.rdstate();
+            const auto flags = is.rdstate();
 
             // clear stream flags
             is.clear();
@@ -8918,6 +9004,14 @@ class basic_json
         }
 
       private:
+        void fill_buffer()
+        {
+            // fill
+            is.read(buffer.data(), static_cast<std::streamsize>(buffer.size()));
+            // store number of bytes in the buffer
+            fill_size = static_cast<size_t>(is.gcount());
+        }
+
         /// the associated input stream
         std::istream& is;
 
@@ -8935,7 +9029,7 @@ class basic_json
         const std::streampos start_position;
 
         /// internal buffer
-        std::vector<char> buffer;
+        std::array<char, N> buffer{{}};
     };
 
     /// input adapter for buffer input
@@ -8956,7 +9050,7 @@ class basic_json
         input_buffer_adapter(const input_buffer_adapter&) = delete;
         input_buffer_adapter& operator=(input_buffer_adapter&) = delete;
 
-        int get_character() override
+        int get_character() noexcept override
         {
             if (JSON_LIKELY(cursor < limit))
             {
@@ -8972,7 +9066,7 @@ class basic_json
         {
             // avoid reading too many characters
             const size_t max_length = static_cast<size_t>(limit - start);
-            return std::string(start + offset, std::min(length, max_length - offset));
+            return std::string(start + offset, (std::min)(length, max_length - offset));
         }
 
       private:
@@ -9892,7 +9986,7 @@ class basic_json
                 }
                 else
                 {
-                    vec[i] = static_cast<uint8_t>(current);
+                    vec[i] = static_cast<uint8_t>(current);  // LCOV_EXCL_LINE
                 }
             }
 
@@ -10650,7 +10744,7 @@ class basic_json
                 }
                 else
                 {
-                    oa->write_character(vec[i]);
+                    oa->write_character(vec[i]);  // LCOV_EXCL_LINE
                 }
             }
         }
@@ -10771,16 +10865,16 @@ class basic_json
     boolean         | `false`                           | false            | 0xc2
     number_integer  | -9223372036854775808..-2147483649 | int64            | 0xd3
     number_integer  | -2147483648..-32769               | int32            | 0xd2
-    number_integer  | -32768..-129                      | int16            | 0xd1
+    number_integer  | -32768..-129                      | int16            | 0xd1
     number_integer  | -128..-33                         | int8             | 0xd0
     number_integer  | -32..-1                           | negative fixint  | 0xe0..0xff
     number_integer  | 0..127                            | positive fixint  | 0x00..0x7f
-    number_integer  | 128..255                          | uint 8           | 0xcc
+    number_integer  | 128..255                          | uint 8           | 0xcc
     number_integer  | 256..65535                        | uint 16          | 0xcd
     number_integer  | 65536..4294967295                 | uint 32          | 0xce
     number_integer  | 4294967296..18446744073709551615  | uint 64          | 0xcf
     number_unsigned | 0..127                            | positive fixint  | 0x00..0x7f
-    number_unsigned | 128..255                          | uint 8           | 0xcc
+    number_unsigned | 128..255                          | uint 8           | 0xcc
     number_unsigned | 256..65535                        | uint 16          | 0xcd
     number_unsigned | 65536..4294967295                 | uint 32          | 0xce
     number_unsigned | 4294967296..18446744073709551615  | uint 64          | 0xcf
@@ -10876,7 +10970,7 @@ class basic_json
     map                    | object          | 0xbb
     map                    | object          | 0xbf
     False                  | `false`         | 0xf4
-    True                   | `true`          | 0xf5
+    True                   | `true`          | 0xf5
     Nill                   | `null`          | 0xf6
     Half-Precision Float   | number_float    | 0xf9
     Single-Precision Float | number_float    | 0xfa
@@ -11038,7 +11132,8 @@ class basic_json
             name_separator,  ///< the name separator `:`
             value_separator, ///< the value separator `,`
             parse_error,     ///< indicating a parse error
-            end_of_input     ///< indicating the end of the input buffer
+            end_of_input,    ///< indicating the end of the input buffer
+            literal_or_value ///< a literal or the begin of a value (only for diagnostics)
         };
 
         /// return name of values of type token_type (only used for errors)
@@ -11076,6 +11171,8 @@ class basic_json
                     return "<parse error>";
                 case token_type::end_of_input:
                     return "end of input";
+                case token_type::literal_or_value:
+                    return "'[', '{', or a literal";
                 default:
                 {
                     // catch non-enum values
@@ -11087,6 +11184,10 @@ class basic_json
         explicit lexer(input_adapter_t adapter)
             : ia(adapter), decimal_point_char(get_decimal_point())
         {}
+
+        // delete because of pointer members
+        lexer(const lexer&) = delete;
+        lexer& operator=(lexer&) = delete;
 
       private:
         /////////////////////
@@ -11495,13 +11596,13 @@ class basic_json
                                         }
                                         else
                                         {
-                                            error_message = "invalid string: surrogate " + codepoint_to_string(codepoint1) + " must be followed by U+DC00..U+DFFF instead of " + codepoint_to_string(codepoint2);
+                                            error_message = "invalid string: surrogate U+DC00..U+DFFF must be followed by U+DC00..U+DFFF";
                                             return token_type::parse_error;
                                         }
                                     }
                                     else
                                     {
-                                        error_message = "invalid string: surrogate " + codepoint_to_string(codepoint1) + " must be followed by U+DC00..U+DFFF";
+                                        error_message = "invalid string: surrogate U+DC00..U+DFFF must be followed by U+DC00..U+DFFF";
                                         return token_type::parse_error;
                                     }
                                 }
@@ -11509,7 +11610,7 @@ class basic_json
                                 {
                                     if (JSON_UNLIKELY(0xDC00 <= codepoint1 and codepoint1 <= 0xDFFF))
                                     {
-                                        error_message = "invalid string: surrogate " + codepoint_to_string(codepoint1) + " must follow U+D800..U+DBFF";
+                                        error_message = "invalid string: surrogate U+DC00..U+DFFF must follow U+D800..U+DBFF";
                                         return token_type::parse_error;
                                     }
 
@@ -11594,7 +11695,7 @@ class basic_json
                     case 0x1e:
                     case 0x1f:
                     {
-                        error_message = "invalid string: control character " + codepoint_to_string(current) + " must be escaped";
+                        error_message = "invalid string: control character must be escaped";
                         return token_type::parse_error;
                     }
 
@@ -12435,7 +12536,7 @@ scan_number_done:
         }
 
         /// return syntax error message
-        const std::string& get_error_message() const noexcept
+        constexpr const char* get_error_message() const noexcept
         {
             return error_message;
         }
@@ -12529,7 +12630,7 @@ scan_number_done:
         size_t yylen = 0;
 
         /// a description of occurred lexer errors
-        std::string error_message = "";
+        const char* error_message = "";
 
         // number values
         number_integer_t value_integer = 0;
@@ -12805,10 +12906,16 @@ scan_number_done:
                     break;
                 }
 
+                case lexer::token_type::parse_error:
+                {
+                    // using "uninitialized" to avoid "expected" message
+                    expect(lexer::token_type::uninitialized);
+                }
+
                 default:
                 {
-                    // the last token was unexpected
-                    unexpect(last_token);
+                    // the last token was unexpected; we expected a value
+                    expect(lexer::token_type::literal_or_value);
                 }
             }
 
@@ -12946,51 +13053,40 @@ scan_number_done:
         /// get next token from lexer
         typename lexer::token_type get_token()
         {
-            last_token = m_lexer.scan();
-            return last_token;
+            return (last_token = m_lexer.scan());
         }
 
         /*!
         @throw parse_error.101 if expected token did not occur
         */
-        void expect(typename lexer::token_type t) const
+        void expect(typename lexer::token_type t)
         {
             if (JSON_UNLIKELY(t != last_token))
             {
-                std::string error_msg = "syntax error - ";
-                if (last_token == lexer::token_type::parse_error)
-                {
-                    error_msg += m_lexer.get_error_message() + "; last read: '" + m_lexer.get_token_string() + "'";
-                }
-                else
-                {
-                    error_msg += "unexpected " + std::string(lexer::token_type_name(last_token));
-                }
-
-                error_msg += "; expected " + std::string(lexer::token_type_name(t));
-                JSON_THROW(parse_error::create(101, m_lexer.get_position(), error_msg));
+                errored = true;
+                expected = t;
+                throw_exception();
             }
         }
 
-        /*!
-        @throw parse_error.101 if unexpected token occurred
-        */
-        void unexpect(typename lexer::token_type t) const
+        [[noreturn]] void throw_exception() const
         {
-            if (JSON_UNLIKELY(t == last_token))
+            std::string error_msg = "syntax error - ";
+            if (last_token == lexer::token_type::parse_error)
             {
-                std::string error_msg = "syntax error - ";
-                if (last_token == lexer::token_type::parse_error)
-                {
-                    error_msg += m_lexer.get_error_message() + "; last read '" + m_lexer.get_token_string() + "'";
-                }
-                else
-                {
-                    error_msg += "unexpected " + std::string(lexer::token_type_name(last_token));
-                }
-
-                JSON_THROW(parse_error::create(101, m_lexer.get_position(), error_msg));
+                error_msg += std::string(m_lexer.get_error_message()) + "; last read: '" + m_lexer.get_token_string() + "'";
             }
+            else
+            {
+                error_msg += "unexpected " + std::string(lexer::token_type_name(last_token));
+            }
+
+            if (expected != lexer::token_type::uninitialized)
+            {
+                error_msg += "; expected " + std::string(lexer::token_type_name(expected));
+            }
+
+            JSON_THROW(parse_error::create(101, m_lexer.get_position(), error_msg));
         }
 
       private:
@@ -13002,6 +13098,10 @@ scan_number_done:
         typename lexer::token_type last_token = lexer::token_type::uninitialized;
         /// the lexer
         lexer m_lexer;
+        /// whether a syntax error occurred
+        bool errored = false;
+        /// possible reason for the syntax error
+        typename lexer::token_type expected = lexer::token_type::uninitialized;
     };
 
   public:
@@ -14174,7 +14274,7 @@ scan_number_done:
 
                 case patch_operations::copy:
                 {
-                    const std::string from_path = get_value("copy", "from", true);;
+                    const std::string from_path = get_value("copy", "from", true);
                     const json_pointer from_ptr(from_path);
 
                     // the "from" location must exist - use at()
