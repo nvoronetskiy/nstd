@@ -20,45 +20,29 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-extern "C"
-{
-#include "external/sqlite/sqlite3.h"
-}
-
-#define MODERN_SQLITE_STD_OPTIONAL_SUPPORT
-#include "external/sqlite_modern_cpp/sqlite_modern_cpp.h"
-#include <vector>
+#include <algorithm>
+#include <iterator>
+#include <mutex>
+#include <random>
 
 namespace nstd
 {
 
-namespace sqlite = sqlite;
-
-namespace db
+template<typename T = uint64_t>
+class default_random_provider
 {
+public:
+    auto operator ()() -> decltype(auto)
+    {
+        std::scoped_lock lock{ _mutex };
 
-struct scoped_transaction
-{
-    scoped_transaction(nstd::sqlite::database &db) : _db(db) { _db << "begin;"; };
-    ~scoped_transaction() { if (!_rollback) _db << "commit;"; else _db << "rollback;"; };
-
-    void rollback(bool rollback = true) { _rollback = rollback; }
+        return rand_dist(rand_gen);
+    }
 
 private:
-    nstd::sqlite::database &_db;
-    bool _rollback { false };
+    inline static std::mt19937_64 rand_gen{ static_cast<T>(std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count()) };
+    inline static std::uniform_int_distribution<T> rand_dist{ 1 };
+    inline static std::mutex _mutex;
 };
 
-template<typename Target, typename... AttrTypes>
-struct result_builder
-{
-    std::vector<Target> data;
-
-    void operator()(AttrTypes... args)
-    {
-        data.emplace_back(std::forward<AttrTypes&&>(args)...);
-    };
-};
-
-}
 }

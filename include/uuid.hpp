@@ -28,6 +28,7 @@ SOFTWARE.
 #include <random>
 #include <string>
 #include <vector>
+#include "default_random_provider.hpp"
 
 namespace nstd
 {
@@ -88,12 +89,9 @@ public:
 
     static uuid generate_random()
     {
-        while (!seeded)
+        if (!seeded)
         {
-            seed[0] = rand_dist(rand_gen);
-            seed[1] = rand_dist(rand_gen);
-
-            if (seed[0] && seed[1]) seeded = true;
+            init_random();
         }
 
         union { uint8_t bytes[16]; uint64_t data[2]; } s;
@@ -105,6 +103,18 @@ public:
         s.bytes[8] = (s.bytes[8] & 0x30) + 8;
 
         return std::vector<uint8_t>{ s.bytes, s.bytes + 16 };
+    }
+
+    template<typename RandomProvider = default_random_provider<uint64_t>>
+    static void init_random(RandomProvider &&random_provider = RandomProvider())
+    {
+        do
+        {
+            seed[0] = random_provider();
+            seed[1] = random_provider();
+        } while (!(seed[0] && seed[1]));
+
+        seeded = true;
     }
 
     static bool validate_uuid_string(const std::string &str, bool strict = false)
@@ -150,7 +160,7 @@ public:
 
     static uint64_t get_random_number()
     {
-        return rand_dist(rand_gen);
+        return default_random_provider<uint64_t>()();
     }
 
 private:
@@ -169,8 +179,6 @@ private:
     }
 
     inline static uint64_t seed[2] { 0 };
-    inline static std::mt19937_64 rand_gen{ static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count()) };
-    inline static std::uniform_int_distribution<uint64_t> rand_dist{ 1 };
     inline static bool seeded { false };
     static constexpr std::array<size_t, 4> dash_positions {8, 13, 18, 23};
     static constexpr const char *const sep_char { "-" };

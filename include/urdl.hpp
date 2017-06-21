@@ -33,8 +33,38 @@ SOFTWARE.
 #include "external/urdl/read_stream.hpp"
 #include "external/urdl/url.hpp"
 
+#include <string>
+#include <vector>
+
 namespace nstd
 {
     namespace asio = asio;
     namespace urdl = urdl;
+
+   template<typename ContainerType = std::string>
+    std::pair<std::string, ContainerType> download_url(const urdl::url &url)
+    {
+        nstd::asio::io_context io_service;
+
+        nstd::urdl::read_stream stream(io_service);
+
+        stream.open(url);
+
+        std::vector<uint8_t> result;
+
+        while (true)
+        {
+            char data[1024];
+            asio::error_code ec;
+            std::size_t length { stream.read_some(nstd::asio::buffer(data), ec) };
+
+            if (ec == nstd::asio::error::eof) break;
+
+            if (ec) throw std::system_error(ec);
+
+            std::copy(reinterpret_cast<uint8_t*>(data), reinterpret_cast<uint8_t*>(data) + length, std::back_inserter(result));
+        }
+
+        return std::make_pair(stream.headers(), ContainerType(std::begin(result), std::end(result)));
+    }
 }

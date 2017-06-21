@@ -23,10 +23,13 @@ SOFTWARE.
 #include <limits>
 #include "relinx.hpp"
 #include "uuid.hpp"
+#include "default_random_provider.hpp"
+#include "quantum_random_provider.hpp"
 
 namespace nstd
 {
 
+template<typename RandomProvider = default_random_provider<uint64_t>>
 class uuid_iterator_adapter
 {
 public:
@@ -37,7 +40,7 @@ public:
     using reference = const value_type&;
     using iterator_category = std::input_iterator_tag;
 
-    uuid_iterator_adapter() = default;
+    uuid_iterator_adapter() { nstd::uuid::uuid::init_random(RandomProvider()); }
     uuid_iterator_adapter(bool begin_iterator_flag) : _uuid(begin_iterator_flag ? uuid::uuid::generate_random() : nstd::uuid::uuid()) { }
     uuid_iterator_adapter(const uuid_iterator_adapter &) = default;
     uuid_iterator_adapter(uuid_iterator_adapter &&) = default;
@@ -84,6 +87,7 @@ protected:
     uuid::uuid _uuid;
 };
 
+template<typename RandomProvider = default_random_provider<uint64_t>>
 class random_iterator_adapter
 {
 public:
@@ -125,7 +129,7 @@ public:
     {
         do
         {
-            _result = uuid::uuid::get_random_number();
+            _result = random_provider();
         }
         while (_result == std::numeric_limits<uint64_t>::max());
 
@@ -143,16 +147,19 @@ public:
 
 protected:
     uint64_t _result { std::numeric_limits<uint64_t>::max() };
+    static inline RandomProvider random_provider;
 };
 
+template<typename RandomProvider = default_random_provider<uint64_t>>
 auto from_uuid()
 {
-    return nstd::relinx::from(uuid_iterator_adapter(true), uuid_iterator_adapter());
+    return nstd::relinx::from(uuid_iterator_adapter<RandomProvider>(true), uuid_iterator_adapter<RandomProvider>());
 }
 
+template<typename RandomProvider = default_random_provider<uint64_t>>
 auto from_random()
 {
-    return nstd::relinx::from(random_iterator_adapter(true), random_iterator_adapter());
+    return nstd::relinx::from(random_iterator_adapter<RandomProvider>(true), random_iterator_adapter<RandomProvider>());
 }
 
 }

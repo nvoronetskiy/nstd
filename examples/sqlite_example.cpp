@@ -19,20 +19,50 @@ SOFTWARE.
 */
 
 #include <iostream>
-#include "soci.hpp"
-
-std::string connectString;
-nstd::soci::backend_factory const &backEnd = *nstd::soci::factory_sqlite3();
+#include <string>
+#include <tuple>
+#include "default_random_provider.hpp"
+#include "relinx.hpp"
+#include "sqlite.hpp"
 
 int main()
 {
-    nstd::soci::session sql(backEnd, connectString);
+    nstd::sqlite::database db{ ":memory:" };
 
-    int val { 123 };
-    int result {0};
-    sql << "select :val", nstd::soci::into(result), nstd::soci::use(val);
+    db << "create table if not exists example(id int primary key, name text, password text)";
+    db << "delete from example";
 
-    std::cout << result << std::endl;
+    {
+        nstd::db::scoped_transaction tr(db);
+
+        nstd::relinx::range(1, 100)->for_each([&db](auto &&idx)
+        {
+            auto name { std::to_string(nstd::default_random_provider<>()()) };
+            auto password { std::to_string(nstd::default_random_provider<>()()) };
+
+            db << "insert into example(id, name, password) values (?, ?, ?)" << idx << name << password;
+        });
+    }
+
+    using example_row = nstd::db::result_builder<std::tuple<int, std::string, std::string>, int, std::string, std::string>;
+
+    example_row records;
+
+    db << "select id, name, password from example where id between 30 and 80" >> records;
+
+    nstd::relinx::from(records.data)->for_each([](auto &&row)
+    {
+        auto &[id, name, password] = row;
+
+        std::cout << "id: " << id << ";\tname: " << name << ";\tpassword: " << password << std::endl;
+    });
+
+    db << "select name, password from example order by name desc limit 20" >> [](std::string name, std::string password)
+    {
+        std::cout << "name: " << name << ";\tpassword: " << password << std::endl;
+    };
+
+    std::cout << "exiting..." << std::endl;
 
     return 0;
 }
