@@ -32,7 +32,7 @@ int main()
     db << "create table example(id int primary key, name text, password text)";
 
     {
-        nstd::db::scoped_transaction tr(db);
+        nstd::db::scoped_transaction tr(db, true);
 
         nstd::relinx::range(1, 100)->for_each([&db](auto &&idx)
         {

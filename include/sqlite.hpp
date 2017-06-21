@@ -40,14 +40,15 @@ namespace db
 
 struct scoped_transaction
 {
-    scoped_transaction(nstd::sqlite::database &db) : _db(db) { _db << "begin;"; };
+    scoped_transaction(nstd::sqlite::database &db, bool autocommit = false) : _db(db), _rollback(!autocommit) { _db << "begin;"; };
     ~scoped_transaction() { if (!_rollback) _db << "commit;"; else _db << "rollback;"; };
 
-    void rollback(bool rollback = true) { _rollback = rollback; }
+    void rollback() { _rollback = true; }
+    void commit() { _rollback = false; }
 
 private:
     nstd::sqlite::database &_db;
-    bool _rollback { false };
+    bool _rollback { true };
 };
 
 template<typename Target, typename... ColTypes>
