@@ -37,9 +37,7 @@ SOFTWARE.
 
 #include <iostream>
 
-namespace nstd
-{
-namespace relinx
+namespace nstd::relinx
 {
 
 using namespace std::literals;
@@ -2963,5 +2961,4 @@ auto repeat(T e, std::size_t count) -> decltype(auto)
     return std::make_shared<next_relinx_type>(std::shared_ptr<void>(nullptr), std::move(c));
 }
 
-}
 }

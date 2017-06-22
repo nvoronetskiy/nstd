@@ -30,7 +30,7 @@ SOFTWARE.
 
 int main()
 {
-    nstd::sqlite::database db{ ":memory:" };
+    nstd::db::sqlite::database db{ ":memory:" };
 
     db << "create table example(id int primary key, name text, password text)";
 

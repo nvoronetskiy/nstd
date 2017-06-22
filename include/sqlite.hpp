@@ -30,24 +30,21 @@ extern "C"
 #include <tuple>
 #include <vector>
 
-namespace nstd
+namespace nstd::db
 {
 
 namespace sqlite = sqlite;
 
-namespace db
-{
-
 struct scoped_transaction
 {
-    scoped_transaction(nstd::sqlite::database &db, bool autocommit = false) : _db(db), _rollback(!autocommit) { _db << "begin;"; };
+    scoped_transaction(nstd::db::sqlite::database &db, bool autocommit = false) : _db(db), _rollback(!autocommit) { _db << "begin;"; };
     ~scoped_transaction() { if (!_rollback) _db << "commit;"; else _db << "rollback;"; };
 
     void rollback() { _rollback = true; }
     void commit() { _rollback = false; }
 
 private:
-    nstd::sqlite::database &_db;
+    nstd::db::sqlite::database &_db;
     bool _rollback { true };
 };
 
@@ -94,4 +91,4 @@ struct tuple_records
 };
 
 }
-}
+

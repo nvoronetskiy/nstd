@@ -24,9 +24,7 @@ SOFTWARE.
 #include <string>
 #include <vector>
 
-namespace nstd
-{
-namespace base64
+namespace nstd::base64
 {
 
 std::string base64_encode(const void *data, size_t length)
@@ -132,4 +130,4 @@ ResultContainerType base64_decode(const std::string &encoded_string)
 }
 
 }
-}
+

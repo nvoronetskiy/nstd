@@ -32,11 +32,11 @@ SOFTWARE.
 #include <type_traits>
 #include <unordered_set>
 
-namespace nstd
+namespace nstd::signal_slot
 {
+
 using namespace std::chrono_literals;
-namespace signal_slot
-{
+
 template <typename T>
 struct has_value_type
 {
@@ -557,7 +557,6 @@ protected:
     std::unordered_set<std::shared_ptr<nstd::signal_slot::signal<Args...>>> _signals;
 };
 
-}
 }
 
 namespace std

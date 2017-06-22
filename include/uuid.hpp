@@ -30,9 +30,7 @@ SOFTWARE.
 #include <vector>
 #include "random_provider_default.hpp"
 
-namespace nstd
-{
-namespace uuid
+namespace nstd::uuid
 {
 
 class uuid
@@ -185,4 +183,4 @@ private:
 };
 
 }
-}
+
