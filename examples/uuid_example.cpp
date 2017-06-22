@@ -19,8 +19,8 @@ SOFTWARE.
 */
 
 #include <iostream>
-#include "default_random_provider.hpp"
-#include "quantum_random_provider.hpp"
+#include "random_provider_default.hpp"
+#include "random_provider_quantum.hpp"
 #include "uuid.hpp"
 
 int main()
@@ -50,7 +50,7 @@ int main()
 
     std::cout << "Quantum random uuids:" << std::endl;
 
-    nstd::uuid::uuid::init_random(nstd::quantum_random_provider<>());
+    nstd::uuid::uuid::init_random(nstd::random_provider_quantum<>());
 
     auto quuid { nstd::uuid::uuid::generate_random() };
 

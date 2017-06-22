@@ -29,7 +29,7 @@ namespace nstd
 {
 
 template<typename T = uint64_t>
-class default_random_provider
+class random_provider_default
 {
 public:
     auto operator ()() -> decltype(auto)

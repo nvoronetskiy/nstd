@@ -23,12 +23,12 @@ SOFTWARE.
 #include <limits>
 #include "relinx.hpp"
 #include "uuid.hpp"
-#include "default_random_provider.hpp"
+#include "random_provider_default.hpp"
 
 namespace nstd
 {
 
-template<typename RandomProvider = default_random_provider<uint64_t>>
+template<typename RandomProvider = random_provider_default<uint64_t>>
 class random_iterator_adapter
 {
 public:
@@ -91,7 +91,7 @@ protected:
     static inline RandomProvider random_provider;
 };
 
-template<typename RandomProvider = default_random_provider<uint64_t>>
+template<typename RandomProvider = random_provider_default<uint64_t>>
 auto from_random()
 {
     return nstd::relinx::from(random_iterator_adapter<RandomProvider>(true), random_iterator_adapter<RandomProvider>());

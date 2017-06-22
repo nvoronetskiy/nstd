@@ -31,10 +31,10 @@ namespace nstd
 {
 
 template<typename T = uint64_t>
-class quantum_random_provider
+class random_provider_quantum
 {
 public:
-    quantum_random_provider()
+    random_provider_quantum()
     {
         std::scoped_lock lock{ _mutex };
 

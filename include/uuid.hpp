@@ -28,7 +28,7 @@ SOFTWARE.
 #include <random>
 #include <string>
 #include <vector>
-#include "default_random_provider.hpp"
+#include "random_provider_default.hpp"
 
 namespace nstd
 {
@@ -105,7 +105,7 @@ public:
         return std::vector<uint8_t>{ s.bytes, s.bytes + 16 };
     }
 
-    template<typename RandomProvider = default_random_provider<uint64_t>>
+    template<typename RandomProvider = random_provider_default<uint64_t>>
     static void init_random(RandomProvider &&random_provider = RandomProvider())
     {
         do
@@ -160,7 +160,7 @@ public:
 
     static uint64_t get_random_number()
     {
-        return default_random_provider<uint64_t>()();
+        return random_provider_default<uint64_t>()();
     }
 
 private:

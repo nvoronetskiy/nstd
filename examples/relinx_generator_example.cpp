@@ -21,7 +21,7 @@ SOFTWARE.
 #include <iostream>
 #include "relinx_generator_uuid.hpp"
 #include "relinx_generator_random.hpp"
-#include "quantum_random_provider.hpp"
+#include "random_provider_quantum.hpp"
 
 int main()
 {
@@ -35,8 +35,8 @@ int main()
         std::cout << u << std::endl;
     });
 
-    std::cout << "from the quantum provider:" << std::endl;
-    nstd::from_random<nstd::quantum_random_provider<>>()->take(200)->for_each([](auto &&u)
+    std::cout << std::endl << "From the quantum provider:" << std::endl;
+    nstd::from_random<nstd::random_provider_quantum<>>()->take(200)->for_each([](auto &&u)
     {
         std::cout << u << std::endl;
     });

@@ -22,7 +22,7 @@ SOFTWARE.
 #include <optional>
 #include <string>
 #include <tuple>
-#include "default_random_provider.hpp"
+#include "random_provider_default.hpp"
 #include "relinx.hpp"
 #include "relinx_generator_uuid.hpp"
 #include "sqlite.hpp"
@@ -39,8 +39,8 @@ int main()
 
         nstd::relinx::range(1, 100)->for_each([&db](auto &&idx)
         {
-            auto name { std::to_string(nstd::default_random_provider<>()()) };
-            auto password { std::to_string(nstd::default_random_provider<>()()) };
+            auto name { std::to_string(nstd::random_provider_default<>()()) };
+            auto password { std::to_string(nstd::random_provider_default<>()()) };
 
             db << "insert into example(id, name, password) values (?, ?, ?)" << idx << name << password;
         });
@@ -73,12 +73,12 @@ int main()
         nstd::from_uuid()->take(100)->for_each([&db](auto &&uuid)
         {
             auto uuid_str { uuid.to_string() };
-            auto name { std::to_string(nstd::default_random_provider<>()()) };
-            auto password { std::to_string(nstd::default_random_provider<>()()) };
+            auto name { std::to_string(nstd::random_provider_default<>()()) };
+            auto password { std::to_string(nstd::random_provider_default<>()()) };
             nstd::json::json json_data;
             std::optional<std::string> json_data_str;
 
-            if (nstd::default_random_provider<>()() & 1)
+            if (nstd::random_provider_default<>()() & 1)
             {
                 json_data["id"] = uuid_str;
                 json_data["name"] = name;
