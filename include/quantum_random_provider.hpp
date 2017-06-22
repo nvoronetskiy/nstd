@@ -60,11 +60,11 @@ public:
     }
 
 private:
-    inline static constexpr const std::size_t _cache_size { 1024 };
+    static constexpr const char *_url { "http://qrng.anu.edu.au/API/jsonI.php?type=uint8&length=" };
+    static constexpr const std::size_t _cache_size { 1024 };
     inline static std::array<uint8_t, _cache_size> _quantum_data;
     inline static std::size_t _cursor { 0 };
     inline static std::mutex _mutex;
-    inline static constexpr const char *_url { "http://qrng.anu.edu.au/API/jsonI.php?type=uint8&length=" };
 
     void preload_quantum_data()
     {
