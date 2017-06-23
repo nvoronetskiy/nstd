@@ -24,13 +24,19 @@ SOFTWARE.
 int main()
 {
     using namespace nstd::date;
-    using namespace std::chrono_literals;
+    using namespace std::chrono;
 
-    auto tz = local_days{nov/3/1975} + 18h + 30min;
+    auto birth_date_time { sys_days { nov/3/1975} + 18h + 30min };
+    auto birth_date { sys_days { floor<days>(birth_date_time) } };
+    auto birth_wd { weekday { birth_date } };
+    auto lived { sys_days { floor<days>(system_clock::now()) } - birth_date };
+    auto age { duration_cast<years>(lived).count() };
 
-    std::cout << weekday{floor<days>(tz)} << ", " << tz << std::endl;
+    std::cout << "Date:\t\t" << birth_wd << ", " << birth_date_time << std::endl;
+    std::cout << "Age:\t\t" << age << std::endl;
+    std::cout << "Special date:\t" << sys_days(0_y/1/1) << std::endl;
 
-    std::cout << "exiting..." << std::endl;
+    std::cout << std::endl << "exiting..." << std::endl;
 
     return 0;
 }
