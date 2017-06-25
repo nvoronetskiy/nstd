@@ -18,6 +18,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
+#include <chrono>
 #include <iostream>
 #include <vector>
 #include "asio.hpp"
@@ -26,9 +27,11 @@ SOFTWARE.
 
 int main()
 {
+    using namespace std::chrono_literals;
+
     asio::ip::tcp::iostream s;
 
-    s.expires_after(std::chrono::seconds(60));
+    s.expires_after(60s);
 
     s.connect("qrng.anu.edu.au", "http");
     if (!s)
@@ -44,15 +47,19 @@ int main()
 
     std::string http_version;
     s >> http_version;
+
     unsigned int status_code;
     s >> status_code;
+
     std::string status_message;
     std::getline(s, status_message);
+
     if (!s || http_version.substr(0, 5) != "HTTP/")
     {
       std::cout << "Invalid response\n";
       return 1;
     }
+
     if (status_code != 200)
     {
       std::cout << "Response returned with status code " << status_code << "\n";
@@ -60,8 +67,10 @@ int main()
     }
 
     std::string header;
+
     while (std::getline(s, header) && header != "\r")
       std::cout << header << "\n";
+
     std::cout << "\n";
 
 
@@ -69,7 +78,6 @@ int main()
     json_str_stream << s.rdbuf();
 
     auto json_str { json_str_stream.str() };
-
     auto json { nstd::json::json::parse(json_str) };
 
     bool success { json[0]["success"] };

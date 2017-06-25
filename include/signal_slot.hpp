@@ -54,14 +54,14 @@ struct no_value_type
     no_value_type &operator= (no_value_type &&) = default;
 };
 
-template <typename T1, typename T2>
+template <typename T1>
 using base_value_type = typename std::conditional<std::is_same<T1, std::void_t<>>::value, no_value_type, has_value_type<T1>>::type;
 
 template<typename T1 = std::void_t<>, typename T2 = std::void_t<>>
-class paired_ptr : public base_value_type<T1, T2>
+class paired_ptr : public base_value_type<T1>
 {
 public:
-	using base_type = base_value_type<T1, T2>;
+	using base_type = base_value_type<T1>;
 	using connected_paired_ptr_type = paired_ptr<T2, T1>;
 
 	template<typename, typename> friend struct paired_ptr;

@@ -22,7 +22,6 @@ SOFTWARE.
 
 #include <limits>
 #include "relinx.hpp"
-#include "uuid.hpp"
 #include "random_provider_default.hpp"
 
 namespace nstd
@@ -40,7 +39,7 @@ public:
     using iterator_category = std::input_iterator_tag;
 
     random_iterator_adapter() = default;
-    random_iterator_adapter(bool begin_iterator_flag) : _result(begin_iterator_flag ? uuid::uuid::get_random_number() : std::numeric_limits<uint64_t>::max()) { }
+    random_iterator_adapter(bool begin_iterator_flag) : _result(begin_iterator_flag ? random_provider() : std::numeric_limits<uint64_t>::max()) { }
     random_iterator_adapter(const random_iterator_adapter &) = default;
     random_iterator_adapter(random_iterator_adapter &&) = default;
     random_iterator_adapter &operator=(const random_iterator_adapter &) = default;

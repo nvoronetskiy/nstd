@@ -37,8 +37,8 @@ namespace sqlite = sqlite;
 
 struct scoped_transaction
 {
-    scoped_transaction(nstd::db::sqlite::database &db, bool autocommit = false) : _db(db), _rollback(!autocommit) { _db << "begin;"; };
-    ~scoped_transaction() { if (!_rollback) _db << "commit;"; else _db << "rollback;"; };
+    scoped_transaction(nstd::db::sqlite::database &db, bool autocommit = false) : _db(db), _rollback(!autocommit) { _db << "begin"; };
+    ~scoped_transaction() { if (!_rollback) _db << "commit"; else _db << "rollback"; };
 
     void rollback() { _rollback = true; }
     void commit() { _rollback = false; }
