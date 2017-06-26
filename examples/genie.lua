@@ -126,3 +126,58 @@ solution "nstd_examples"
             linkoptions { "-s" }
             objdir "obj/relinx_generator_example/Release"
             targetdir "bin/relinx_generator_example/Release"
+
+    project "sqlite_example"
+        kind "ConsoleApp"
+        buildoptions { "-std=c++1z", "-fexceptions", "-Wall" }
+        files { "sqlite_example.cpp", "../include/external/sqlite/sqlite3.c" };
+        linkoptions { "-static" }
+        configuration { "Debug" }
+            flags { "Symbols" }
+            flags { "OptimizeSpeed" }
+            objdir "obj/sqlite_example/Debug"
+            targetdir "bin/sqlite_example/Debug"
+
+        configuration { "Release" }
+            defines { "NDEBUG" }
+            linkoptions { "-s" }
+            objdir "obj/sqlite_example/Release"
+            targetdir "bin/sqlite_example/Release"
+
+    project "urdl_example"
+        kind "ConsoleApp"
+        buildoptions { "-std=c++1z", "-fexceptions", "-Wall" }
+        userincludedirs { "../include/external/asio/asio/include" }
+        files { "urdl_example.cpp" };
+        links { iif(os.is("windows"), "ws2_32", ""), iif(os.is("windows"), "wsock32", "") }
+        linkoptions { "-static" }
+        configuration { "Debug" }
+            flags { "Symbols" }
+            objdir "obj/urdl_example/Debug"
+            targetdir "bin/urdl_example/Debug"
+
+        configuration { "Release" }
+            defines { "NDEBUG" }
+            flags { "OptimizeSpeed" }
+            linkoptions { "-s" }
+            objdir "obj/urdl_example/Release"
+            targetdir "bin/urdl_example/Release"
+
+    project "uuid_example"
+        kind "ConsoleApp"
+        buildoptions { "-std=c++1z", "-fexceptions", "-Wall" }
+        userincludedirs { "../include/external/asio/asio/include" }
+        files { "uuid_example.cpp" };
+        links { iif(os.is("windows"), "ws2_32", ""), iif(os.is("windows"), "wsock32", "") }
+        linkoptions { "-static" }
+        configuration { "Debug" }
+            flags { "Symbols" }
+            flags { "OptimizeSpeed" }
+            objdir "obj/uuid_example/Debug"
+            targetdir "bin/uuid_example/Debug"
+
+        configuration { "Release" }
+            defines { "NDEBUG" }
+            linkoptions { "-s" }
+            objdir "obj/uuid_example/Release"
+            targetdir "bin/uuid_example/Release"
