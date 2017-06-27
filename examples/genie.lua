@@ -104,6 +104,7 @@ solution "nstd_examples"
         configuration { "Release" }
             defines { "NDEBUG" }
             linkoptions { "-s" }
+            buildoptions { "-Wno-unused-variable", "-Wno-unused-but-set-variable" }
             flags { "OptimizeSpeed" }
             objdir "obj/relinx_example/Release"
             targetdir "bin/relinx_example/Release"
@@ -129,7 +130,7 @@ solution "nstd_examples"
 
     project "sqlite_example"
         kind "ConsoleApp"
-        buildoptions { "-std=c++1z", "-fexceptions", "-Wall" }
+        buildoptions { "-std=c++1z", "-fexceptions", "-Wall", "-Wno-unused-but-set-variable" }
         files { "sqlite_example.cpp", "../include/external/sqlite/sqlite3.c" };
         linkoptions { "-static" }
         configuration { "Debug" }
