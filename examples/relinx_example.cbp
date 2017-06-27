@@ -34,6 +34,8 @@
 			<Add option="-std=c++1z" />
 			<Add option="-m64" />
 			<Add option="-fexceptions" />
+			<Add option="-Wno-unused-variable" />
+			<Add option="-Wno-unused-but-set-variable" />
 			<Add directory="../include" />
 		</Compiler>
 		<Linker>
