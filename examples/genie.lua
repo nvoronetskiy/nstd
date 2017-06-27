@@ -98,13 +98,13 @@ solution "nstd_examples"
         linkoptions { "-static" }
         configuration { "Debug" }
             flags { "Symbols" }
-            flags { "OptimizeSpeed" }
             objdir "obj/relinx_example/Debug"
             targetdir "bin/relinx_example/Debug"
 
         configuration { "Release" }
             defines { "NDEBUG" }
             linkoptions { "-s" }
+            flags { "OptimizeSpeed" }
             objdir "obj/relinx_example/Release"
             targetdir "bin/relinx_example/Release"
 
@@ -134,13 +134,13 @@ solution "nstd_examples"
         linkoptions { "-static" }
         configuration { "Debug" }
             flags { "Symbols" }
-            flags { "OptimizeSpeed" }
             objdir "obj/sqlite_example/Debug"
             targetdir "bin/sqlite_example/Debug"
 
         configuration { "Release" }
             defines { "NDEBUG" }
             linkoptions { "-s" }
+            flags { "OptimizeSpeed" }
             objdir "obj/sqlite_example/Release"
             targetdir "bin/sqlite_example/Release"
 
@@ -172,12 +172,12 @@ solution "nstd_examples"
         linkoptions { "-static" }
         configuration { "Debug" }
             flags { "Symbols" }
-            flags { "OptimizeSpeed" }
             objdir "obj/uuid_example/Debug"
             targetdir "bin/uuid_example/Debug"
 
         configuration { "Release" }
             defines { "NDEBUG" }
             linkoptions { "-s" }
+            flags { "OptimizeSpeed" }
             objdir "obj/uuid_example/Release"
             targetdir "bin/uuid_example/Release"
