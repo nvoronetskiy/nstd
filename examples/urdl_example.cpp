@@ -20,6 +20,7 @@ SOFTWARE.
 
 #include <iostream>
 #include <sstream>
+#include <string>
 #include <string_view>
 #include "urdl.hpp"
 #include "json.hpp"
@@ -39,6 +40,14 @@ int main()
     std::cout << "float: " << *reinterpret_cast<float*>(data_ptr) << std::endl; data_ptr += sizeof(float);
     std::cout << "uint16_t: " << *reinterpret_cast<uint16_t*>(data_ptr) << std::endl; data_ptr += sizeof(uint16_t);
     std::cout << "uint32_t: " << *reinterpret_cast<uint32_t*>(data_ptr) << std::endl; data_ptr += sizeof(uint32_t);
+    std::cout << "----------------------------------------------------------------------------------" << std::endl;
+
+    auto [google_headers, html_str] { nstd::download_url("http://www.google.com") };
+
+    std::cout << google_headers << std::endl;
+    std::cout << std::string_view(std::data(html_str), 128) << " ..." << std::endl;
+
+    std::cout << "exiting..." << std::endl;
 
     return 0;
 }
