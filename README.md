@@ -8,6 +8,7 @@ The library currently contains the following features:
    * json - Niels Lohmann's json library [https://github.com/nlohmann/json]
    * asio - boost's networking library, but no dependancy on boost [http://think-async.com/]
    * urdl - the library to download web content (depends on asio) [https://github.com/chriskohlhoff/urdl]
+   * date - the date and time manipulations library created by Howard Hinnant [https://github.com/HowardHinnant/date]
    * base64 - base64 encoding/decoding
    * uuid - unique id generator
    * relinx - LINQ-like data transformations
