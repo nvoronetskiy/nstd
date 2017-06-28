@@ -16,4 +16,4 @@ The library currently contains the following features:
    * sqlite3/sqlite c++ wrapper - sql database support [https://github.com/aminroosta/sqlite_modern_cpp]
    * quantum random number provider (using QRNG internet service: http://qrng.anu.edu.au)
    * wire - r-lyeh's drop-in std::string replacement with extended functionality and safe C/C++ formatters [https://github.com/r-lyeh/wire]
-   * giant - r-lyeh's a tiny library to handle little/big endianness [https://github.com/r-lyeh/giant]
+   * giant - r-lyeh's tiny library to handle little/big endianness [https://github.com/r-lyeh/giant]
