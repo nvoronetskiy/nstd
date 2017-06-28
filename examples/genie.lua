@@ -17,7 +17,6 @@ solution "nstd_examples"
     project "asio_example"
         files { "asio_example.cpp" };
         userincludedirs { "../include/external/asio/asio/include" }
-        links { iif(os.is("windows"), { "ws2_32", "wsock32" }, {}) }
         configuration { "Debug" }
             objdir "obj/asio_example/Debug"
             targetdir "bin/asio_example/Debug"
@@ -25,6 +24,9 @@ solution "nstd_examples"
         configuration { "Release" }
             objdir "obj/asio_example/Release"
             targetdir "bin/asio_example/Release"
+
+        configuration "windows"
+            links { "ws2_32", "wsock32" }
 
     project "base64_example"
         files { "base64_example.cpp" };
@@ -81,7 +83,6 @@ solution "nstd_examples"
     project "relinx_generator_example"
         files { "relinx_generator_example.cpp" };
         userincludedirs { "../include/external/asio/asio/include" }
-        links { iif(os.is("windows"), { "ws2_32", "wsock32" }, {}) }
         configuration { "Debug" }
             objdir "obj/relinx_generator_example/Debug"
             targetdir "bin/relinx_generator_example/Debug"
@@ -89,6 +90,10 @@ solution "nstd_examples"
         configuration { "Release" }
             objdir "obj/relinx_generator_example/Release"
             targetdir "bin/relinx_generator_example/Release"
+
+        configuration "windows"
+            links { "ws2_32", "wsock32" }
+
 
     project "sqlite_example"
         files { "sqlite_example.cpp", "../include/external/sqlite/sqlite3.c" };
@@ -104,7 +109,6 @@ solution "nstd_examples"
     project "urdl_example"
         files { "urdl_example.cpp" };
         userincludedirs { "../include/external/asio/asio/include" }
-        links { iif(os.is("windows"), { "ws2_32", "wsock32" }, {}) }
         configuration { "Debug" }
             objdir "obj/urdl_example/Debug"
             targetdir "bin/urdl_example/Debug"
@@ -113,10 +117,12 @@ solution "nstd_examples"
             objdir "obj/urdl_example/Release"
             targetdir "bin/urdl_example/Release"
 
+        configuration "windows"
+            links { "ws2_32", "wsock32" }
+
     project "uuid_example"
         files { "uuid_example.cpp" };
         userincludedirs { "../include/external/asio/asio/include" }
-        links { iif(os.is("windows"), { "ws2_32", "wsock32" }, {}) }
         configuration { "Debug" }
             objdir "obj/uuid_example/Debug"
             targetdir "bin/uuid_example/Debug"
@@ -124,3 +130,6 @@ solution "nstd_examples"
         configuration { "Release" }
             objdir "obj/uuid_example/Release"
             targetdir "bin/uuid_example/Release"
+
+        configuration "windows"
+            links { "ws2_32", "wsock32" }
