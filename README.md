@@ -9,7 +9,7 @@ The library currently contains the following features:
    * asio - boost's networking library, but no dependancy on boost [http://think-async.com/]
    * urdl - the library to download web content (depends on asio) [https://github.com/chriskohlhoff/urdl]
    * date - the date and time manipulations library created by Howard Hinnant [https://github.com/HowardHinnant/date]
-   * units - r-lyeh's the units calculations library [https://github.com/r-lyeh/units]
+   * units - r-lyeh's library to provide numerical quantities with units [https://github.com/r-lyeh/units]
    * base64 - base64 encoding/decoding
    * uuid - unique id generator
    * relinx - LINQ-like data transformations
