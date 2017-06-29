@@ -166,8 +166,8 @@ public:
 		for (auto &it : expired) _erase(it);
 	}
 
-	template<typename Duration>
-	void set_vacuum_idle_period(const Duration duration)
+	template<typename duration_type>
+	void set_vacuum_idle_period(const duration_type &duration)
 	{
 		_vacuum_idle_period_ms = std::chrono::duration_cast<std::chrono::milliseconds>(duration);
 	}
