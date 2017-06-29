@@ -185,7 +185,7 @@ public:
 
 		if (_auto_vacuum) return;
 
-		_auto_vacuum_thread = std::thread([this]() { _auto_vacuum_procedure(this); });
+		_auto_vacuum_thread = std::thread([this]() { _auto_vacuum_procedure(); });
 		_auto_vacuum = true;
 	}
 
@@ -209,11 +209,11 @@ public:
 private:
 	std::unordered_map<key_type, std::tuple<std::chrono::time_point<std::chrono::high_resolution_clock>, std::chrono::milliseconds, value_type>> _data;
 
-	void _auto_vacuum_procedure(self_type *this_)
+	void _auto_vacuum_procedure()
 	{
 		auto time{ std::chrono::high_resolution_clock::now() };
 
-		while (!this_->_cancel_auto_vacuum)
+		while (!_cancel_auto_vacuum)
 		{
 			auto now{ std::chrono::high_resolution_clock::now() };
 
@@ -221,10 +221,10 @@ private:
 			{
 				time = now;
 
-				this_->vacuum();
+				vacuum();
 			}
 
-			if (this_->_cancel_auto_vacuum) return;
+			if (_cancel_auto_vacuum) return;
 
 			std::this_thread::sleep_for(100ms);
 		}
