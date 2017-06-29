@@ -48,6 +48,19 @@ namespace giant
     enum { xinu_type = 0, unix_type = 1, nuxi_type = 2, type = nuxi_type, is_little = 0, is_big = 0 };
 #endif
 
+    // compile-time endianness swap based on http://stackoverflow.com/a/36937049
+    template<class T, std::size_t... N>
+    constexpr T c_swap_impl(T i, std::index_sequence<N...>)
+    {
+      return (((i >> N * CHAR_BIT & std::uint8_t(-1)) << (sizeof(T) - 1 - N) * CHAR_BIT) | ...);
+    }
+
+    template<class T, class U = std::make_unsigned_t<T>>
+    constexpr U c_swap(T i)
+    {
+      return c_swap_impl<U>(i, std::make_index_sequence<sizeof(T)>{});
+    }
+
     template<typename T>
     T swap( T out )
     {
@@ -126,9 +139,38 @@ namespace giant
     T betoh( const T &in ) {
         return type == unix_type ? in : swap( in );
     }
+
     template<typename T>
     T htobe( const T &in ) {
         return type == unix_type ? in : swap( in );
+    }
+
+    template<typename T>
+    constexpr T c_letobe( const T &in ) {
+        return c_swap( in );
+    }
+    template<typename T>
+    constexpr T c_betole( const T &in ) {
+        return c_swap( in );
+    }
+
+    template<typename T>
+    constexpr T c_letoh( const T &in ) {
+        return type == xinu_type ? in : c_swap( in );
+    }
+
+    template<typename T>
+    constexpr T c_htole( const T &in ) {
+        return type == xinu_type ? in : c_swap( in );
+    }
+
+    template<typename T>
+    constexpr T c_betoh( const T &in ) {
+        return type == unix_type ? in : c_swap( in );
+    }
+    template<typename T>
+    constexpr T c_htobe( const T &in ) {
+        return type == unix_type ? in : c_swap( in );
     }
 }
 

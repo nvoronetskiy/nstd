@@ -4,6 +4,9 @@
 		<Project filename="sqlite_example.cbp" />
 		<Project filename="uuid_example.cbp" />
 		<Project filename="urdl_example.cbp" />
+		<Project filename="units_example.cbp" />
+		<Project filename="wire_example.cbp" />
+		<Project filename="giant_example.cbp" />
 		<Project filename="relinx_generator_example.cbp" />
 		<Project filename="relinx_example.cbp" />
 		<Project filename="live_property_example.cbp" />

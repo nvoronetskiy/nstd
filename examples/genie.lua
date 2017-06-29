@@ -48,6 +48,17 @@ solution "nstd_examples"
             objdir "obj/date_example/Release"
             targetdir "bin/date_example/Release"
 
+    project "giant_example"
+        files { "giant_example.cpp" };
+        buildoptions { "-Wno-unused-variable" }
+        configuration { "Debug" }
+            objdir "obj/giant_example/Debug"
+            targetdir "bin/giant_example/Debug"
+
+        configuration { "Release" }
+            objdir "obj/giant_example/Release"
+            targetdir "bin/giant_example/Release"
+
     project "expiry_cache_example"
         files { "expiry_cache_example.cpp" };
         configuration { "Debug" }
@@ -106,6 +117,16 @@ solution "nstd_examples"
             objdir "obj/sqlite_example/Release"
             targetdir "bin/sqlite_example/Release"
 
+    project "units_example"
+        files { "units_example.cpp" };
+        configuration { "Debug" }
+            objdir "obj/units_example/Debug"
+            targetdir "bin/units_example/Debug"
+
+        configuration { "Release" }
+            objdir "obj/units_example/Release"
+            targetdir "bin/units_example/Release"
+
     project "urdl_example"
         files { "urdl_example.cpp" };
         userincludedirs { "../include/external/asio/asio/include" }
@@ -133,3 +154,15 @@ solution "nstd_examples"
 
         configuration "windows"
             links { "ws2_32", "wsock32" }
+
+    project "wire_example"
+        files { "wire_example.cpp" };
+        buildoptions { "-Wno-unused-variable" }
+        configuration { "Debug" }
+            objdir "obj/wire_example/Debug"
+            targetdir "bin/wire_example/Debug"
+
+        configuration { "Release" }
+            objdir "obj/wire_example/Release"
+            targetdir "bin/wire_example/Release"
+
