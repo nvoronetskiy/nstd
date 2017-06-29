@@ -241,10 +241,10 @@ private:
 
 	std::atomic<std::chrono::milliseconds> _expiry_duration_ms { 10min };
 	std::atomic<std::chrono::milliseconds> _vacuum_idle_period_ms { 1min };
-	mutable std::mutex _mutex;
 	std::atomic_bool _access_prolongs { false };
 	std::atomic_bool _auto_vacuum { false };
 	std::atomic_bool _cancel_auto_vacuum { false };
 	std::thread _auto_vacuum_thread;
+	mutable std::mutex _mutex;
 };
 }
