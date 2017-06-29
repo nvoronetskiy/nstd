@@ -53,7 +53,7 @@ public:
 
 		auto it{ _data.find(key) };
 
-		if (it != _data.end()) _erase(it);
+		if (it != std::end(_data)) _erase(it);
 
 		_data.emplace(key, std::make_tuple(std::chrono::high_resolution_clock::now(), (expiry_duration_ms == 0ms) ? _expiry_duration_ms.load() : expiry_duration_ms, value));
 	}
@@ -62,7 +62,7 @@ public:
 	{
 		std::scoped_lock lock {_mutex};
 
-		return _data.find(key) != _data.end();
+		return _data.find(key) != std::end(_data);
 	}
 
 	bool get(const key_type &key, value_type &value)
@@ -71,7 +71,7 @@ public:
 
 		auto it{ _data.find(key) };
 
-		if (it != _data.end())
+		if (it != std::end(_data))
         {
             auto &val = it->second;
             auto now{ std::chrono::high_resolution_clock::now() };
@@ -116,7 +116,7 @@ public:
 
 		auto it{ _data.find(key) };
 
-		if (it != _data.end()) std::get<1>(it->second) = std::chrono::duration_cast<std::chrono::milliseconds>(duration);
+		if (it != std::end(_data)) std::get<1>(it->second) = std::chrono::duration_cast<std::chrono::milliseconds>(duration);
 	}
 
 	const std::chrono::milliseconds get_expiry() const
@@ -130,7 +130,7 @@ public:
 
 		auto it{ _data.find(key) };
 
-		if (it != _data.end()) return std::get<1>(it->second);
+		if (it != std::end(_data)) return std::get<1>(it->second);
 
 		return _expiry_duration_ms;
 	}
