@@ -100,6 +100,9 @@ int main()
 
     std::cout << js_ord << std::endl;
 
+    auto iff { js_ord[0].value("8", "***") };
+    std::cout << iff << std::endl;
+
     std::cout << "exiting..." << std::endl;
 
     return 0;

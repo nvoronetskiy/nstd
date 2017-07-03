@@ -41,3 +41,8 @@ inline nstd::json::json_ord operator "" _json_ord(const char* s, std::size_t n)
 {
     return nstd::json::json_ord::parse(s, s + n);
 }
+
+inline nstd::json::json_ord::json_pointer operator "" _json_ord_pointer(const char* s, std::size_t n)
+{
+    return nstd::json::json_ord::json_pointer(std::string(s, n));
+}
