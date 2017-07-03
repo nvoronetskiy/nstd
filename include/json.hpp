@@ -21,8 +21,23 @@ SOFTWARE.
 */
 
 #include "external/json/json.hpp"
+#include "ordered_map_set.hpp"
 
 namespace nstd
 {
-namespace json = nlohmann;
+
+template<class Key, class T, class Ignore, class Allocator, class Hash = std::hash<Key>, class KeyEqual = std::equal_to<Key>>
+using ordered_map = tsl::ordered_map<Key, T, Hash, KeyEqual, Allocator>;
+
+namespace json
+{
+using namespace nlohmann;
+using json_ord = nlohmann::basic_json<ordered_map>;
+}
+
+}
+
+inline nstd::json::json_ord operator "" _json_ord(const char* s, std::size_t n)
+{
+    return nstd::json::json_ord::parse(s, s + n);
 }
