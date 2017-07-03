@@ -96,6 +96,10 @@ int main()
         std::cout << "json_data: " << json_data.value_or("null") << std::endl;
     };
 
+    auto js_ord { R"({"3":null, "2":null, "1":"the last one..."})"_json_ord };
+
+    std::cout << js_ord << std::endl;
+
     std::cout << "exiting..." << std::endl;
 
     return 0;

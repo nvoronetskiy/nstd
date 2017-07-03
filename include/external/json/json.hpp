@@ -29,6 +29,7 @@ SOFTWARE.
 #ifndef NLOHMANN_JSON_HPP
 #define NLOHMANN_JSON_HPP
 
+#include "../ordered-map/src/ordered_map.h"
 #include <algorithm> // all_of, copy, fill, find, for_each, none_of, remove, reverse, transform
 #include <array> // array
 #include <cassert> // assert
@@ -115,6 +116,9 @@ SOFTWARE.
 */
 namespace nlohmann
 {
+template<class Key, class T, class Ignore, class Allocator, 
+         class Hash = std::hash<Key>, class KeyEqual = std::equal_to<Key>>
+using ordered_map = tsl::ordered_map<Key, T, Hash, KeyEqual, Allocator>;
 
 /*!
 @brief unnamed namespace with internal helper functions
@@ -14497,6 +14501,8 @@ uses the standard template types.
 @since version 1.0.0
 */
 using json = basic_json<>;
+
+using json_ord = nlohmann::basic_json<ordered_map>;
 } // namespace nlohmann
 
 
@@ -14572,6 +14578,11 @@ if no parse error occurred.
 inline nlohmann::json operator "" _json(const char* s, std::size_t n)
 {
     return nlohmann::json::parse(s, s + n);
+}
+
+inline nlohmann::json_ord operator "" _json_ord(const char* s, std::size_t n)
+{
+    return nlohmann::json_ord::parse(s, s + n);
 }
 
 /*!
