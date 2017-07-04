@@ -115,7 +115,6 @@ SOFTWARE.
 */
 namespace nlohmann
 {
-
 /*!
 @brief unnamed namespace with internal helper functions
 

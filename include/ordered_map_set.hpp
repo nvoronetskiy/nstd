@@ -20,29 +20,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#include "external/json/json.hpp"
-#include "ordered_map_set.hpp"
+#include "external/ordered-map/src/ordered_map.h"
 
 namespace nstd
 {
-
-template<class Key, class T, class Ignore, class Allocator, class Hash = std::hash<Key>, class KeyEqual = std::equal_to<Key>>
-using ordered_map = tsl::ordered_map<Key, T, Hash, KeyEqual, Allocator>;
-
-namespace json
-{
-using namespace nlohmann;
-using json_ord = nlohmann::basic_json<ordered_map>;
-}
-
-}
-
-inline nstd::json::json_ord operator "" _json_ord(const char* s, std::size_t n)
-{
-    return nstd::json::json_ord::parse(s, s + n);
-}
-
-inline nstd::json::json_ord::json_pointer operator "" _json_ord_pointer(const char* s, std::size_t n)
-{
-    return nstd::json::json_ord::json_pointer(std::string(s, n));
+namespace tsl = tsl;
 }
