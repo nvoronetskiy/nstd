@@ -17,3 +17,4 @@ The library currently contains the following features:
    * quantum random number provider (using QRNG internet service: http://qrng.anu.edu.au)
    * wire - r-lyeh's drop-in std::string replacement with extended functionality and safe C/C++ formatters [https://github.com/r-lyeh/wire]
    * giant - r-lyeh's tiny library to handle little/big endianness [https://github.com/r-lyeh/giant]
+   * ordered_map, ordered_set - Tessil's C++ hash map/set which preserves the order of insertion [https://github.com/Tessil/ordered-map]
