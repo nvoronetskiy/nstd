@@ -20,7 +20,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
 
-#include "external/json/json.hpp"
+#include "external/json/src/json.hpp"
 #include "ordered_map_set.hpp"
 
 namespace nstd
