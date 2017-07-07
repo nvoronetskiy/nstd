@@ -385,9 +385,8 @@ public:
 
         _signal_queue.push(std::make_tuple(args...));
 
-        if (!_thread_running)
+        if (!_thread_running.exchange(true))
         {
-            _thread_running = true;
             _dispatcher_thread = std::thread([this](){ queue_dispatcher(); });
         }
     }
@@ -450,11 +449,11 @@ public:
 
     void start_timer(const Args&... args)
     {
-        _args = std::make_tuple(this, args...);
-
-        _timer_enabled = true;
-
-        _timer_thread = std::thread([this](){ timer_procedure(); });
+        if (!_timer_enabled.exchange(true))
+        {
+            _args = std::make_tuple(this, args...);
+            _timer_thread = std::thread([this](){ timer_procedure(); });
+        }
     }
 
     void stop_timer()
