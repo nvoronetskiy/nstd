@@ -404,11 +404,10 @@ public:
 
 protected:
     std::queue<std::tuple<Args...>> _signal_queue;
-    std::atomic_bool _cancelled { false };
     std::mutex _emit_lock;
     std::atomic<std::chrono::milliseconds> _throttle_ms { 100ms };
     std::thread _dispatcher_thread;
-    std::atomic_bool _thread_running { false };
+    std::atomic_bool _cancelled { false }, _thread_running { false };
 
     void queue_dispatcher()
     {
